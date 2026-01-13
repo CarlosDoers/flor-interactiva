@@ -3,8 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Caustics, Html } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Flower } from './components/Flower';
-// Background shader eliminado para optimizar rendimiento
 import { PrismaticBeams } from './components/PrismaticBeams';
+import { DynamicBackground } from './components/DynamicBackground';
 import { HandControlProvider } from './components/HandContext';
 import { HandTracker } from './components/HandTracker';
 import './App.css';
@@ -35,8 +35,8 @@ function App() {
         {/* Entorno visible para reflejos ricos */}
         <Environment preset="city" />
         
-        {/* Fondo plano simple para mejor rendimiento */}
-        <color attach="background" args={['#101010']} /> 
+        {/* Fondo dinámico que reacciona a la mano */}
+        <DynamicBackground />
         
         <group position={[0, 0.1, 2.2]}>
           {/* Efectos de Luz Volumétrica (Rayos Prisma) */}

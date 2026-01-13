@@ -11,14 +11,18 @@ const FLOWER_CONFIG = {
                             // NOTA: Si cambias esto, ajusta 'flowerGrowth' en PrismaticBeams.jsx igual
   baseRotationSpeed: 0.1,   // Velocidad de giro normal
   rotationBoost: 0.5,       // Cuánto acelera al interactuar
+  
+  // Colores para sonrisa
+  normalColor: new THREE.Color(1, 1, 1),      // Blanco (color original)
+  smileColor: new THREE.Color(1.0, 0.4, 0.6), // Rosa/Coral suave
 };
 
 export function Flower(props) {
   const { scene } = useGLTF('/models/flor-2.glb');
   const modelRef = useRef();
   
-  // Consumir datos de la mano (OPTIMIZADO: ref)
-  const { handStateRef } = useHandControl();
+  // Consumir datos de la mano Y la sonrisa (OPTIMIZADO: ref)
+  const { handStateRef, smileStateRef } = useHandControl();
 
   // Preparamos la escena UNA sola vez con materiales mejorados (Brillo/Metal)
   const enhancedScene = useMemo(() => {
@@ -56,6 +60,7 @@ export function Flower(props) {
   // Mantenemos el movimiento de rotación existente, ahora reactivo
   useFrame((state, delta) => {
     const handState = handStateRef.current; // Leer valor actual sin re-render
+    const smileState = smileStateRef.current; // Leer sonrisa
     
     if (modelRef.current) {
       // Rotación
@@ -65,6 +70,18 @@ export function Flower(props) {
       // Escala (Respiración)
       const targetScale = FLOWER_CONFIG.baseScale + (handState * FLOWER_CONFIG.maxGrowth);
       modelRef.current.scale.set(targetScale, targetScale, targetScale);
+      
+      // Cambio de color según sonrisa
+      modelRef.current.traverse((child) => {
+        if (child.isMesh && child.material && child.material.color) {
+          // Interpolar entre color normal y color de sonrisa
+          child.material.color.lerpColors(
+            FLOWER_CONFIG.normalColor,
+            FLOWER_CONFIG.smileColor,
+            smileState
+          );
+        }
+      });
     }
   });
 
