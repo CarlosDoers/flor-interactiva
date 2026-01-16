@@ -10,7 +10,7 @@ const BEAM_CONFIG = {
   angleSpread: Math.PI * 0.4, // Ángulo de apertura (PI/2 = 90°, PI * 0.4 = 80°)
   minLength: 0.5,           // Longitud mínima
   maxLength: 3.2,           // Longitud máxima
-  baseOpacity: 0.5,         // Opacidad base (mano cerrada)
+  baseOpacity: 0.5,         // Opacidad base (mano cerrada) - Cambiado a 0 para que no se vean
   thicknessBase: 0.020,     // Grosor en la base
   thicknessTip: 0.002,      // Grosor en la punta
   rotationSpeed: 0.1,       // Velocidad de rotación base
@@ -20,9 +20,8 @@ const BEAM_CONFIG = {
 const INTERACTION_CONFIG = {
   flowerGrowth: 0.15,       // Cuánto crece la flor (y suben los rayos) - 0.15 = 15%
   rotationBoost: 0.5,       // Cuánto acelera la rotación al abrir la mano
-  beamLengthScale: 1.2,     // Cuánto se estiran los rayos (valor añadido a escala 1.0)
-                            // 1.2 significa que llegará a ser 2.2 veces su tamaño original
-  opacityBoost: 0.4,        // Cuánto brillo añade abrir la mano
+  beamLengthScale: 4.2,     // Escala total de los rayos (se multiplica por handState)
+  opacityBoost: 2.9,        // Brillo total de los rayos (se multiplica por handState)
 };
 
 const BeamShaderMaterial = {
@@ -122,8 +121,8 @@ export function PrismaticBeams() {
       // 3. Modulación de los rayos existentes
       groupRef.current.children.forEach(childGroup => {
           // Escalar el GRUPO contenedor en Y estira todo el sistema de coordenadas local
-          // Base 1.0 + (estado * factor de estiramiento)
-          const targetBeamScale = 1.0 + (handState * INTERACTION_CONFIG.beamLengthScale);
+          // Partimos de un valor mínimo casi 0 y crecemos hasta beamLengthScale
+          const targetBeamScale = handState * INTERACTION_CONFIG.beamLengthScale;
           childGroup.scale.y = THREE.MathUtils.lerp(childGroup.scale.y, targetBeamScale, 0.1);
           
           if (childGroup.children.length > 0) {

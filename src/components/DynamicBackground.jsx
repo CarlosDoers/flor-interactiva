@@ -6,7 +6,7 @@ import { useHandControl } from './HandContext';
 // Configuración de colores del fondo
 const BG_CONFIG = {
   closedColor: '#101010',  // Negro oscuro (mano cerrada)
-  openColor: '#f2d1f9',    // Azul oscuro sutil (mano abierta)
+  openColor: '#463b5b',    // Azul oscuro sutil (mano abierta)
 };
 
 export function DynamicBackground() {
