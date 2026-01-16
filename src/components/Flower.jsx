@@ -17,8 +17,13 @@ export function Flower(props) {
   const { scene } = useGLTF('/models/flor-2.glb');
   const modelRef = useRef();
   
-  // Consumir datos de la mano (OPTIMIZADO: ref)
-  const { handStateRef } = useHandControl();
+  // Consumir datos de la mano Y de la cara
+  const { handStateRef, faceStateRef } = useHandControl();
+
+  // Colores emocionales (el base se tomará del modelo original)
+  const smileColor = useMemo(() => new THREE.Color('#ffaa00'), []); // Dorado/Naranja (Alegría)
+  const surpriseColor = useMemo(() => new THREE.Color('#00bfff'), []); // Azul Cian (Sorpresa/Energía)
+  const tempColor = useMemo(() => new THREE.Color(), []);
 
   // Preparamos la escena UNA sola vez con materiales mejorados (Brillo/Metal)
   const enhancedScene = useMemo(() => {
@@ -31,6 +36,10 @@ export function Flower(props) {
         const originalMat = child.material;
         child.material = originalMat.clone();
         
+        // Guardamos el color original en userData para recuperarlo después
+        // Si tiene textura (map), el color suele ser blanco, si no, es el color del material
+        child.userData.originalColor = child.material.color.clone();
+
         // --- PROPIEDADES VISUALES PRINCIPALES ---
         // Aquí es donde ocurre la magia visual
         child.material.metalness = 0.3;       // Más metálico para reflejar luz
@@ -55,16 +64,49 @@ export function Flower(props) {
 
   // Mantenemos el movimiento de rotación existente, ahora reactivo
   useFrame((state, delta) => {
-    const handState = handStateRef.current; // Leer valor actual sin re-render
+    const handState = handStateRef.current; 
+    const { smile, eyebrows } = faceStateRef.current;
     
     if (modelRef.current) {
-      // Rotación
+      // 1. Dinámica de Movimiento (Mano)
       const speed = FLOWER_CONFIG.baseRotationSpeed + (handState * FLOWER_CONFIG.rotationBoost);
       modelRef.current.rotation.y += delta * speed;
 
-      // Escala (Respiración)
       const targetScale = FLOWER_CONFIG.baseScale + (handState * FLOWER_CONFIG.maxGrowth);
       modelRef.current.scale.set(targetScale, targetScale, targetScale);
+
+      // 2. Dinámica de Color (Cara)
+      // Recorremos cada mesh para aplicar su color específico
+      modelRef.current.traverse((child) => {
+          if (child.isMesh && child.material && child.userData.originalColor) {
+              // Recuperamos el color original de ESE pétalo/parte
+              tempColor.copy(child.userData.originalColor);
+              
+              // Interpolamos hacia el color de sonrisa
+              if (smile > 0.01) {
+                  tempColor.lerp(smileColor, smile); 
+              }
+              
+              // Interpolamos hacia el color de sorpresa (puede mezclarse con sonrisa)
+              if (eyebrows > 0.01) {
+                  tempColor.lerp(surpriseColor, eyebrows);
+              }
+
+              // Interpolación suave del material actual hacia el objetivo calculado
+              child.material.color.lerp(tempColor, 0.1);
+              
+              // Opcional: Aumentar emisión si hay emoción fuerte
+              const emotionIntensity = Math.max(smile, eyebrows);
+              if (child.material.emissive) {
+                  child.material.emissive.copy(tempColor);
+                  child.material.emissiveIntensity = THREE.MathUtils.lerp(
+                      child.material.emissiveIntensity, 
+                      emotionIntensity * 0.5, 
+                      0.1
+                  );
+              }
+          }
+      });
     }
   });
 
