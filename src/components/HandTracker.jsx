@@ -1,16 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { Hands } from '@mediapipe/hands';
-import { FaceMesh } from '@mediapipe/face_mesh';
 import { Camera } from '@mediapipe/camera_utils';
 import { useHandControl } from './HandContext';
 
 export function HandTracker() {
   const videoRef = useRef(null);
-  const { handStateRef, smileStateRef, setIsDetected } = useHandControl();
+  const { handStateRef, setIsDetected } = useHandControl();
   const handsRef = useRef(null);
-  const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
-  const frameCountRef = useRef(0);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -18,9 +15,9 @@ export function HandTracker() {
     // Prevenir doble inicialización
     if (handsRef.current) return;
 
-    // === HANDS DETECTION ===
     const hands = new Hands({
       locateFile: (file) => {
+        // Usar unpkg como CDN alternativo más estable
         return `https://unpkg.com/@mediapipe/hands@0.4.1646424915/${file}`;
       }
     });
@@ -29,28 +26,11 @@ export function HandTracker() {
 
     hands.setOptions({
       maxNumHands: 1,
-      modelComplexity: 0,
+      modelComplexity: 0, // Cambiado a 0 (lite) para mejor compatibilidad
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
 
-    // === FACE MESH DETECTION ===
-    const faceMesh = new FaceMesh({
-      locateFile: (file) => {
-        return `https://unpkg.com/@mediapipe/face_mesh@0.4.1633559619/${file}`;
-      }
-    });
-
-    faceMeshRef.current = faceMesh;
-
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: false, // Desactivado para mejor rendimiento
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    // === CALLBACK HANDS ===
     hands.onResults((results) => {
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         setIsDetected(true);
@@ -92,49 +72,10 @@ export function HandTracker() {
       }
     });
 
-    // === CALLBACK FACE MESH ===
-    faceMesh.onResults((results) => {
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const landmarks = results.multiFaceLandmarks[0];
-        
-        // Puntos clave para detectar sonrisa
-        const leftMouth = landmarks[61];
-        const rightMouth = landmarks[291];
-        const topLip = landmarks[13];
-        const bottomLip = landmarks[14];
-        
-        const mouthWidth = Math.sqrt(
-          Math.pow(rightMouth.x - leftMouth.x, 2) + 
-          Math.pow(rightMouth.y - leftMouth.y, 2)
-        );
-        
-        const mouthHeight = Math.sqrt(
-          Math.pow(topLip.x - bottomLip.x, 2) + 
-          Math.pow(topLip.y - bottomLip.y, 2)
-        );
-        
-        const ratio = mouthWidth / (mouthHeight || 0.01);
-        let smile = (ratio - 3.0) / 2.5;
-        smile = Math.max(0, Math.min(1, smile));
-        
-        const current = smileStateRef.current;
-        smileStateRef.current = current + (smile - current) * 0.2;
-      } else {
-        smileStateRef.current = smileStateRef.current * 0.9;
-      }
-    });
-
     const camera = new Camera(videoRef.current, {
       onFrame: async () => {
-        if (videoRef.current) {
-          frameCountRef.current++;
-          // Alternamos: procesar hands en frames pares, face en impares
-          // Esto reduce la carga computacional
-          if (frameCountRef.current % 2 === 0 && handsRef.current) {
-            await handsRef.current.send({ image: videoRef.current });
-          } else if (faceMeshRef.current) {
-            await faceMeshRef.current.send({ image: videoRef.current });
-          }
+        if (videoRef.current && handsRef.current) {
+          await handsRef.current.send({ image: videoRef.current });
         }
       },
       width: 640,
@@ -145,17 +86,15 @@ export function HandTracker() {
     camera.start();
 
     return () => {
+       // Cleanup adecuado
        if (cameraRef.current) {
          cameraRef.current.stop();
        }
        if (handsRef.current) {
          handsRef.current.close();
        }
-       if (faceMeshRef.current) {
-         faceMeshRef.current.close();
-       }
     };
-  }, [setIsDetected, smileStateRef]);
+  }, [setIsDetected]);
 
   return (
     <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 0, opacity: 0, pointerEvents: 'none' }}>

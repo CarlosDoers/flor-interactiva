@@ -5,13 +5,13 @@ import { useHandControl } from './HandContext';
 
 // --- CONFIGURACIÓN DE LOS RAYOS (Aspecto Visual) ---
 const BEAM_CONFIG = {
-  count: 20,                // Cantidad de rayos
+  count: 12,                // Cantidad de rayos
   radius: 0.05,             // Radio de la esfera de emisión (superficie de la flor)
   angleSpread: Math.PI * 0.4, // Ángulo de apertura (PI/2 = 90°, PI * 0.4 = 80°)
   minLength: 0.5,           // Longitud mínima
   maxLength: 3.2,           // Longitud máxima
   baseOpacity: 0.5,         // Opacidad base (mano cerrada)
-  thicknessBase: 0.035,     // Grosor en la base
+  thicknessBase: 0.020,     // Grosor en la base
   thicknessTip: 0.002,      // Grosor en la punta
   rotationSpeed: 0.1,       // Velocidad de rotación base
 };
