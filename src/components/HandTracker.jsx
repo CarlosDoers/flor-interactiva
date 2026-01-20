@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Holistic } from '@mediapipe/holistic';
+import { Holistic, FACEMESH_TESSELATION, HAND_CONNECTIONS } from '@mediapipe/holistic';
+import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { Camera } from '@mediapipe/camera_utils';
 import { useHandControl } from './HandContext';
 
 export function HandTracker() {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const { handStateRef, faceStateRef, pinchStateRef, setIsDetected } = useHandControl();
   const holisticRef = useRef(null);
   const cameraRef = useRef(null);
@@ -32,6 +34,49 @@ export function HandTracker() {
 
     // --- PROCESADO ---
     holistic.onResults((results) => {
+        // --- VISUALIZACIÓN DEBUG (CANVAS) ---
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        if (canvas && video) {
+            const ctx = canvas.getContext('2d');
+            
+            // Ajustar tamaño del canvas al video si es necesario
+            if (canvas.width !== video.videoWidth) {
+                 canvas.width = video.videoWidth;
+                 canvas.height = video.videoHeight;
+            }
+
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. Configurar Espejo (solo coordenadas para landmarks)
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            
+            // 2. Dibujar Skeleton/Mesh
+            // Configuración de estilo "Holográfico"
+            const connectionStyle = { color: '#00ffee', lineWidth: 1 };
+            const landmarkStyle = { color: '#ff0033', lineWidth: 0, radius: 1 }; // Puntos rojos muy pequeños
+            const faceStyle = { color: '#e0e0e0', lineWidth: 0.5 };
+
+            // Cara (Tesselation = malla completa)
+            if (results.faceLandmarks) {
+               drawConnectors(ctx, results.faceLandmarks, FACEMESH_TESSELATION, faceStyle);
+            }
+            
+            // Manos
+            if (results.leftHandLandmarks) {
+               drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS, connectionStyle);
+               drawLandmarks(ctx, results.leftHandLandmarks, landmarkStyle);
+            }
+            if (results.rightHandLandmarks) {
+               drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS, connectionStyle);
+               drawLandmarks(ctx, results.rightHandLandmarks, landmarkStyle);
+            }
+            
+            ctx.restore();
+        }
+
         // 1. PROCESAMIENTO MANOS (Priorizamos mano derecha o izquierda indistintamente)
         const rightHand = results.rightHandLandmarks;
         const leftHand = results.leftHandLandmarks;
@@ -143,8 +188,30 @@ export function HandTracker() {
   }, [setIsDetected]);
 
   return (
-    <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 0, opacity: 0, pointerEvents: 'none' }}>
-      <video ref={videoRef} style={{ width: '320px', height: '240px' }} playsInline></video>
+    <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 100, pointerEvents: 'none' }}>
+      {/* Ocultamos el video raw, mostramos el canvas procesado */}
+      <video ref={videoRef} style={{ display: 'none' }} playsInline></video>
+      <canvas 
+        ref={canvasRef} 
+        style={{ 
+          width: '240px', 
+          height: '180px', 
+          borderRadius: '12px',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }} 
+      />
+      <div style={{
+          position: 'absolute',
+          bottom: 5, right: 10,
+          color: 'white',
+          fontSize: '10px',
+          fontFamily: 'sans-serif',
+          opacity: 0.7
+      }}>
+          Vision Debug
+      </div>
     </div>
   );
 }
