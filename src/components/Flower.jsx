@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -16,13 +16,15 @@ const FLOWER_CONFIG = {
 export function Flower(props) {
   const { scene } = useGLTF('/models/flor-2.glb');
   const modelRef = useRef();
+  const targetMeshes = useRef([]); // Optimización: Cache de meshes
   
   // Consumir datos de la mano Y de la cara
-  const { handStateRef, faceStateRef } = useHandControl();
+  const { handStateRef, faceStateRef, pinchStateRef } = useHandControl();
 
   // Colores emocionales (el base se tomará del modelo original)
-  const smileColor = useMemo(() => new THREE.Color('#ffaa00'), []); // Dorado/Naranja (Alegría)
+  const smileColor = useMemo(() => new THREE.Color('#ff0033'), []); // Rojo intenso (Alegría/Amor)
   const surpriseColor = useMemo(() => new THREE.Color('#00bfff'), []); // Azul Cian (Sorpresa/Energía)
+  const pinchColor = useMemo(() => new THREE.Color('#bc13fe'), []); // Nuevo: Violeta Neón (Pinch)
   const tempColor = useMemo(() => new THREE.Color(), []);
 
   // Preparamos la escena UNA sola vez con materiales mejorados (Brillo/Metal)
@@ -62,10 +64,21 @@ export function Flower(props) {
     return clone;
   }, [scene]);
 
+  // Optimización: Cache de meshes en useEffect para evitar warnings de render
+  useEffect(() => {
+    targetMeshes.current = [];
+    enhancedScene.traverse((child) => {
+      if (child.isMesh && child.material && child.userData.originalColor) {
+        targetMeshes.current.push(child);
+      }
+    });
+  }, [enhancedScene]);
+
   // Mantenemos el movimiento de rotación existente, ahora reactivo
   useFrame((state, delta) => {
     const handState = handStateRef.current; 
     const { smile, eyebrows } = faceStateRef.current;
+    const pinch = pinchStateRef.current;
     
     if (modelRef.current) {
       // 1. Dinámica de Movimiento (Mano)
@@ -75,33 +88,34 @@ export function Flower(props) {
       const targetScale = FLOWER_CONFIG.baseScale + (handState * FLOWER_CONFIG.maxGrowth);
       modelRef.current.scale.set(targetScale, targetScale, targetScale);
 
-      // 2. Dinámica de Color (Cara)
-      // Recorremos cada mesh para aplicar su color específico
-      modelRef.current.traverse((child) => {
-          if (child.isMesh && child.material && child.userData.originalColor) {
-              // Recuperamos el color original de ESE pétalo/parte
+      // 2. Dinámica de Color (Cara y Gestos) -- OPTIMIZADO: Itera array plano, no el árbol
+      targetMeshes.current.forEach((child) => {
+          if (child.userData.originalColor) {
+              // Recuperamos el color original
               tempColor.copy(child.userData.originalColor);
               
-              // Interpolamos hacia el color de sonrisa
-              if (smile > 0.01) {
-                  tempColor.lerp(smileColor, smile); 
-              }
-              
-              // Interpolamos hacia el color de sorpresa (puede mezclarse con sonrisa)
-              if (eyebrows > 0.01) {
-                  tempColor.lerp(surpriseColor, eyebrows);
-              }
+              // Definimos prioridades de mezcla
+              // Pinza (Mano) -> Violeta
+              if (pinch > 0.01) tempColor.lerp(pinchColor, pinch);
 
-              // Interpolación suave del material actual hacia el objetivo calculado
+              // Sonrisa (Cara) -> Dorado
+              if (smile > 0.01) tempColor.lerp(smileColor, smile); 
+              
+              // Sorpresa (Cara) -> Azul
+              if (eyebrows > 0.01) tempColor.lerp(surpriseColor, eyebrows);
+
+              // Aplicamos al material suavemente
               child.material.color.lerp(tempColor, 0.1);
               
-              // Opcional: Aumentar emisión si hay emoción fuerte
-              const emotionIntensity = Math.max(smile, eyebrows);
+              // Efecto de emisión (brillo)
+              const intensity = Math.max(smile, eyebrows, pinch);
               if (child.material.emissive) {
-                  child.material.emissive.copy(tempColor);
+                  // Si hay intensidad, actualizamos el color emisivo
+                  if (intensity > 0.05) child.material.emissive.copy(tempColor);
+
                   child.material.emissiveIntensity = THREE.MathUtils.lerp(
-                      child.material.emissiveIntensity, 
-                      emotionIntensity * 0.5, 
+                      child.material.emissiveIntensity || 0, 
+                      intensity * 0.5, 
                       0.1
                   );
               }

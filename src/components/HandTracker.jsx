@@ -5,7 +5,7 @@ import { useHandControl } from './HandContext';
 
 export function HandTracker() {
   const videoRef = useRef(null);
-  const { handStateRef, faceStateRef, setIsDetected } = useHandControl();
+  const { handStateRef, faceStateRef, pinchStateRef, setIsDetected } = useHandControl();
   const holisticRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -23,7 +23,7 @@ export function HandTracker() {
     holisticRef.current = holistic;
     
     holistic.setOptions({
-      modelComplexity: 1,
+      modelComplexity: 0, // Optimización: 0 (Lite) para mejor rendimiento
       smoothLandmarks: true,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
@@ -54,10 +54,25 @@ export function HandTracker() {
             
             const current = handStateRef.current;
             handStateRef.current = current + (openness - current) * 0.15;
+
+            // --- NUEVO: Detección de Pinza (Índice vs Pulgar) para color ---
+            const thumbTip = mainHand[4];
+            const indexTip = mainHand[8];
+            const pinchDist = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
+            const pinchRatio = pinchDist / (distToMCP || 0.001);
+
+            // Si el ratio es bajo (dedos juntos), pinch = 1
+            // Umbral aprox 0.3. Invertimos rango.
+            let pinch = 1 - (pinchRatio / 0.35);
+            pinch = Math.max(0, Math.min(1, pinch));
+
+            const currentPinch = pinchStateRef.current;
+            pinchStateRef.current = currentPinch + (pinch - currentPinch) * 0.15;
             
         } else {
             setIsDetected(false);
             handStateRef.current = handStateRef.current * 0.95;
+            pinchStateRef.current = pinchStateRef.current * 0.95;
         }
 
         // 2. PROCESAMIENTO CARA
