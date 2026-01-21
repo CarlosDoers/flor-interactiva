@@ -4,7 +4,8 @@ import { OrbitControls, Environment, Caustics, Html, useProgress } from '@react-
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Flower } from './components/Flower';
 import { PrismaticBeams } from './components/PrismaticBeams';
-import { DynamicBackground } from './components/DynamicBackground';
+// import { DynamicBackground } from './components/DynamicBackground';
+import { DyingUniverse } from './components/DyingUniverse';
 import { HandControlProvider } from './components/HandContext';
 import { HandTracker } from './components/HandTracker';
 import './App.css';
@@ -56,8 +57,9 @@ function App() {
       <Suspense fallback={<Loader />}>
 
         
-        {/* Fondo dinámico que reacciona a la mano */}
-        <DynamicBackground />
+        {/* Fondo shader Dying Universe */}
+        <DyingUniverse />
+        {/* <DynamicBackground /> */}
         
         <group position={[0, 0.1, 2.2]}>
           {/* Efectos de Luz Volumétrica (Rayos Prisma) */}
