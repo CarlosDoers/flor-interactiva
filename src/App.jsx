@@ -46,9 +46,9 @@ function App() {
       <directionalLight 
         position={[5, 10, 5]} 
         intensity={4} 
-        castShadow 
-        shadow-mapSize={2048} 
-        shadow-bias={-0.0001}
+        // castShadow 
+        // shadow-mapSize={2048} 
+        // shadow-bias={-0.0001}
       />
       <pointLight position={[-4, 2, -3]} intensity={2} color="#ffc8aa" />
       <pointLight position={[4, 2, 3]} intensity={1.5} color="#b0aaff" />
