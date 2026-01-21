@@ -116,12 +116,16 @@ export function HandTracker() {
             pinch = Math.max(0, Math.min(1, pinch));
 
             const currentPinch = pinchStateRef.current;
-            pinchStateRef.current = currentPinch + (pinch - currentPinch) * 0.15;
+            const isPinching = pinch > currentPinch;
+            const pinchSmoothing = isPinching ? 0.15 : 0.4;
+
+            pinchStateRef.current = currentPinch + (pinch - currentPinch) * pinchSmoothing;
             
         } else {
             setIsDetected(false);
-            handStateRef.current = handStateRef.current * 0.95;
-            pinchStateRef.current = pinchStateRef.current * 0.95;
+            // Decay más rápido (0.8) para resetear sensación ágil al perder tracking
+            handStateRef.current = handStateRef.current * 0.8;
+            pinchStateRef.current = pinchStateRef.current * 0.8;
         }
 
         // 2. PROCESAMIENTO CARA
@@ -153,16 +157,22 @@ export function HandTracker() {
 
             const currentSmile = faceStateRef.current.smile;
             const currentBrows = faceStateRef.current.eyebrows;
+
+            const isSmiling = smile > currentSmile;
+            const smileSmoothing = isSmiling ? 0.1 : 0.4;
+
+            const isBrowsing = eyebrows > currentBrows;
+            const browSmoothing = isBrowsing ? 0.1 : 0.4;
             
             faceStateRef.current = {
-                smile: currentSmile + (smile - currentSmile) * 0.1,
-                eyebrows: currentBrows + (eyebrows - currentBrows) * 0.1
+                smile: currentSmile + (smile - currentSmile) * smileSmoothing,
+                eyebrows: currentBrows + (eyebrows - currentBrows) * browSmoothing
             };
         } else {
-             // Relajar cara si no se detecta
+             // Relajar cara más rápido si no se detecta
              faceStateRef.current = {
-                smile: faceStateRef.current.smile * 0.95,
-                eyebrows: faceStateRef.current.eyebrows * 0.95
+                smile: faceStateRef.current.smile * 0.8,
+                eyebrows: faceStateRef.current.eyebrows * 0.8
              }
         }
     });
