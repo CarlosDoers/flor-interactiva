@@ -11,8 +11,8 @@ const BEAM_CONFIG = {
   minLength: 0.5,           // Longitud mínima
   maxLength: 3.2,           // Longitud máxima
   baseOpacity: 0.5,         // Opacidad base (mano cerrada) - Cambiado a 0 para que no se vean
-  thicknessBase: 0.020,     // Grosor en la base
-  thicknessTip: 0.002,      // Grosor en la punta
+  thicknessBase: 0.016,     // Grosor en la base
+  thicknessTip: 0.001,      // Grosor en la punta
   rotationSpeed: 0.1,       // Velocidad de rotación base
 };
 
