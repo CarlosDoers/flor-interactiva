@@ -14,7 +14,7 @@ const FLOWER_CONFIG = {
 };
 
 export function Flower(props) {
-  const { scene } = useGLTF('/models/flor-2.glb');
+  const { scene } = useGLTF('/models/flor-4.glb');
   const modelRef = useRef();
   const targetMeshes = useRef([]); // Optimización: Cache de meshes
   
@@ -44,8 +44,8 @@ export function Flower(props) {
 
         // --- PROPIEDADES VISUALES PRINCIPALES ---
         // Aquí es donde ocurre la magia visual
-        child.material.metalness = 0.3;       // Más metálico para reflejar luz
-        child.material.roughness = 0.2;       // Liso para brillos definidos
+        child.material.metalness = 0.8;       // Más metálico para reflejar luz
+        child.material.roughness = 0.5;       // Liso para brillos definidos
         child.material.envMapIntensity = 2.0; // Intensidad del reflejo del entorno
         
         // Aseguramos que sea StandardMaterial para soportar luces físicas
@@ -54,8 +54,8 @@ export function Flower(props) {
           if (originalMat.map) newMat.map = originalMat.map;
           if (originalMat.color) newMat.color = originalMat.color;
           // Re-aplicar propiedades si tuvimos que crear material nuevo
-          newMat.metalness = 0.3;
-          newMat.roughness = 0.2;
+          newMat.metalness = 0.8;
+          newMat.roughness = 0.5;
           newMat.envMapIntensity = 2.0;
           child.material = newMat;
         }
@@ -131,4 +131,4 @@ export function Flower(props) {
   );
 }
 
-useGLTF.preload('/models/flor-2.glb');
+useGLTF.preload('/models/flor-4.glb');
