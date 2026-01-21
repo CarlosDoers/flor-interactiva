@@ -98,7 +98,11 @@ export function HandTracker() {
             openness = Math.max(0, Math.min(1, openness));
             
             const current = handStateRef.current;
-            handStateRef.current = current + (openness - current) * 0.15;
+            // Ajuste de velocidades: Abrir (suave) vs Cerrar (rápido)
+            const isOpening = openness > current;
+            const smoothing = isOpening ? 0.1 : 0.4; // 0.4 para cerrar muy rápido
+            
+            handStateRef.current = current + (openness - current) * smoothing;
 
             // --- NUEVO: Detección de Pinza (Índice vs Pulgar) para color ---
             const thumbTip = mainHand[4];

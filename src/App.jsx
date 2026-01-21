@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, Caustics, Html } from '@react-three/drei';
+import { OrbitControls, Environment, Caustics, Html, useProgress } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Flower } from './components/Flower';
 import { PrismaticBeams } from './components/PrismaticBeams';
@@ -8,6 +8,28 @@ import { DynamicBackground } from './components/DynamicBackground';
 import { HandControlProvider } from './components/HandContext';
 import { HandTracker } from './components/HandTracker';
 import './App.css';
+
+function Loader() {
+  const { progress } = useProgress();
+  return (
+    <Html center>
+      <div style={{
+        width: '200px',
+        height: '6px',
+        background: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: '3px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          background: 'white',
+          transition: 'width 0.2s ease-out'
+        }} />
+      </div>
+    </Html>
+  );
+}
 
 function App() {
   return (
@@ -31,7 +53,7 @@ function App() {
       <pointLight position={[-4, 2, -3]} intensity={2} color="#ffddaa" />
       <pointLight position={[4, 2, 3]} intensity={1.5} color="#aaddff" />
       
-      <Suspense fallback={<Html center style={{ color: 'white', fontFamily: 'system-ui' }}>Cargando…</Html>}>
+      <Suspense fallback={<Loader />}>
         {/* Entorno visible para reflejos ricos */}
         <Environment preset="city" />
         
