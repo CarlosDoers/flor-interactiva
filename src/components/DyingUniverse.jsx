@@ -8,7 +8,7 @@ const SHADER_CONFIG = {
   NUM_STARS: 10,        // Cantidad de estrellas (Impacta mucho al rendimiento)
   NUM_BOUNCES: 3,       // Rebotes en la animación (Impacto medio)
   FLOOR_REFLECT: true, // Reflejos en el suelo (Costoso: true = Menos FPS)
-  STAR_SIZE: 0.02       // Tamaño base de las estrellas
+  STAR_SIZE: 0.01       // Tamaño base de las estrellas
 };
 
 const vertexShader = `
