@@ -19,7 +19,7 @@ const BEAM_CONFIG = {
 // --- CONFIGURACIÓN DE LA INTERACCIÓN (Gesto de la mano) ---
 const INTERACTION_CONFIG = {
   flowerGrowth: 0.15,       // Cuánto crece la flor (y suben los rayos) - 0.15 = 15%
-  rotationBoost: 0.5,       // Cuánto acelera la rotación al abrir la mano
+  rotationBoost: 0.5,       // Cuánto acelera la rotación al separar las manos
   beamLengthScale: 4.2,     // Escala total de los rayos (se multiplica por handState)
   opacityBoost: 2.9,        // Brillo total de los rayos (se multiplica por handState)
 };

@@ -7,7 +7,7 @@ import { useHandControl } from './HandContext';
 export function HandTracker() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { handStateRef, faceStateRef, pinchStateRef, setIsDetected } = useHandControl();
+  const { handStateRef, faceStateRef, pinchStateRef, leftHandHeightRef, rightHandHeightRef, setIsDetected } = useHandControl();
   const holisticRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -77,36 +77,61 @@ export function HandTracker() {
             ctx.restore();
         }
 
-        // 1. PROCESAMIENTO MANOS (Priorizamos mano derecha o izquierda indistintamente)
+        // 1. PROCESAMIENTO MANOS - GESTO "MOISÉS ABRIENDO LAS AGUAS"
+        // Detectamos DOS manos simultáneamente y medimos la separación entre ellas
         const rightHand = results.rightHandLandmarks;
         const leftHand = results.leftHandLandmarks;
-        const mainHand = rightHand || leftHand; // Usamos la que detecte
 
-        if (mainHand) {
+        if (rightHand && leftHand) {
             setIsDetected(true);
             
-            const wrist = mainHand[0];
-            const midMCP = mainHand[9];
-            const midTip = mainHand[12];
+            // Usamos las muñecas (landmark 0) para medir la distancia entre las manos
+            const leftWrist = leftHand[0];
+            const rightWrist = rightHand[0];
             
-            // Lógica de apertura invariante a escala
-            const distToMCP = Math.sqrt(Math.pow(midMCP.x - wrist.x, 2) + Math.pow(midMCP.y - wrist.y, 2));
-            const distToTip = Math.sqrt(Math.pow(midTip.x - wrist.x, 2) + Math.pow(midTip.y - wrist.y, 2));
-            const ratio = distToTip / (distToMCP || 0.001);
+            // Calculamos la distancia horizontal (eje X) entre las manos
+            const horizontalDist = Math.abs(rightWrist.x - leftWrist.x);
             
-            let openness = (ratio - 1.1) / 0.6;
-            openness = Math.max(0, Math.min(1, openness));
+            // Normalizamos la distancia (0 = juntas, 1 = muy separadas)
+            // Rango típico: 0.05 (juntas) a 0.5+ (separadas)
+            let separation = (horizontalDist - 0.05) / 0.35;
+            separation = Math.max(0, Math.min(1, separation));
             
             const current = handStateRef.current;
-            // Ajuste de velocidades: Abrir (suave) vs Cerrar (rápido)
-            const isOpening = openness > current;
-            const smoothing = isOpening ? 0.1 : 0.4; // 0.4 para cerrar muy rápido
+            // Ajuste de velocidades: Separar (suave) vs Juntar (rápido)
+            const isSeparating = separation > current;
+            const smoothing = isSeparating ? 0.1 : 0.4; // 0.4 para juntar muy rápido
             
-            handStateRef.current = current + (openness - current) * smoothing;
+            handStateRef.current = current + (separation - current) * smoothing;
+
+            // --- DETECCIÓN DE ALTURA DE CADA MANO (Para control de luces) ---
+            // La coordenada Y va de 0 (arriba) a 1 (abajo) en MediaPipe
+            // Invertimos para que sea intuitivo: 0 = abajo, 1 = arriba
+            
+            // Mano izquierda
+            let leftHeight = 1 - leftWrist.y;
+            // Normalizamos al rango visible típico (0.3 - 0.7)
+            leftHeight = (leftHeight - 0.3) / 0.4;
+            leftHeight = Math.max(0, Math.min(1, leftHeight));
+            
+            const currentLeftHeight = leftHandHeightRef.current;
+            leftHandHeightRef.current = currentLeftHeight + (leftHeight - currentLeftHeight) * 0.2;
+            
+            // Mano derecha
+            let rightHeight = 1 - rightWrist.y;
+            rightHeight = (rightHeight - 0.3) / 0.4;
+            rightHeight = Math.max(0, Math.min(1, rightHeight));
+            
+            const currentRightHeight = rightHandHeightRef.current;
+            rightHandHeightRef.current = currentRightHeight + (rightHeight - currentRightHeight) * 0.2;
 
             // --- NUEVO: Detección de Pinza (Índice vs Pulgar) para color ---
-            const thumbTip = mainHand[4];
-            const indexTip = mainHand[8];
+            // Usamos la mano derecha para el gesto de pinza
+            const rightMidMCP = rightHand[9];
+            const distToMCP = Math.sqrt(Math.pow(rightMidMCP.x - rightWrist.x, 2) + Math.pow(rightMidMCP.y - rightWrist.y, 2));
+            
+            const thumbTip = rightHand[4];
+            const indexTip = rightHand[8];
             const pinchDist = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
             const pinchRatio = pinchDist / (distToMCP || 0.001);
 
@@ -126,6 +151,8 @@ export function HandTracker() {
             // Decay más rápido (0.8) para resetear sensación ágil al perder tracking
             handStateRef.current = handStateRef.current * 0.8;
             pinchStateRef.current = pinchStateRef.current * 0.8;
+            leftHandHeightRef.current = leftHandHeightRef.current * 0.9;
+            rightHandHeightRef.current = rightHandHeightRef.current * 0.9;
         }
 
         // 2. PROCESAMIENTO CARA

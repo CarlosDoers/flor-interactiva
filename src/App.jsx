@@ -6,6 +6,7 @@ import { Flower } from './components/Flower';
 import { PrismaticBeams } from './components/PrismaticBeams';
 // import { DynamicBackground } from './components/DynamicBackground';
 import { DyingUniverse } from './components/DyingUniverse';
+import { DynamicLights } from './components/DynamicLights';
 import { HandControlProvider } from './components/HandContext';
 import { HandTracker } from './components/HandTracker';
 import './App.css';
@@ -43,16 +44,14 @@ function App() {
         gl={{ powerPreference: 'high-performance', antialias: false }}
       >
         {/* Luces ajustadas para generar mejores cáusticas */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.3} />
       <directionalLight 
         position={[5, 10, 5]} 
-        intensity={4} 
+        intensity={1.5}  // Reducida para que las luces dinámicas sean más visibles
         // castShadow 
         // shadow-mapSize={2048} 
         // shadow-bias={-0.0001}
       />
-      <pointLight position={[-4, 2, -3]} intensity={2} color="#ffc8aa" />
-      <pointLight position={[4, 2, 3]} intensity={1.5} color="#b0aaff" />
       
       <Suspense fallback={<Loader />}>
 
@@ -62,6 +61,9 @@ function App() {
         {/* <DynamicBackground /> */}
         
         <group position={[0, 0.1, 2.2]}>
+          {/* Luces dinámicas MUY cerca de la flor */}
+          <DynamicLights />
+          
           {/* Efectos de Luz Volumétrica (Rayos Prisma) */}
           <group position={[0, 0.82, 0]}>
             <PrismaticBeams />
@@ -105,7 +107,8 @@ function App() {
         textAlign: 'center',
         pointerEvents: 'none'
       }}>
-        🖖 Abre y cierra tu mano frente a la cámara para interactuar
+        🙌 Junta y separa tus dos manos para interactuar<br />
+        ✋ Levanta cada mano para cambiar las luces
       </div>
     </HandControlProvider>
   );

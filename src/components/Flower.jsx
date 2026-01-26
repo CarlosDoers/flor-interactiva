@@ -7,7 +7,7 @@ import { useHandControl } from './HandContext';
 // --- CONFIGURACIÓN DE LA FLOR REACTIVA ---
 const FLOWER_CONFIG = {
   baseScale: 1.0,           // Tamaño inicial de la flor
-  maxGrowth: 0.15,          // Cuánto crece al abrir la mano (0.15 = 15%). 
+  maxGrowth: 0.15,          // Cuánto crece al separar las manos (0.15 = 15%). 
                             // NOTA: Si cambias esto, ajusta 'flowerGrowth' en PrismaticBeams.jsx igual
   baseRotationSpeed: 0.1,   // Velocidad de giro normal
   rotationBoost: 0.5,       // Cuánto acelera al interactuar
