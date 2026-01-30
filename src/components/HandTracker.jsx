@@ -8,20 +8,86 @@ import { useHandControl } from './HandContext';
 // Ajusta aquí los colores, tamaños y comportamientos visuales
 const VISUAL_CONFIG = {
   hands: {
-    color: '#00ffee', // Color de las líneas
-    lineWidth: 4,     // Grosor de las líneas
-    landmarkColor: '#ff0033', // Color de los puntos
-    landmarkRadius: 4,        // Tamaño de los puntos
-    opacity: 1.0      // Opacidad general de las manos (0.0 - 1.0)
+    color: '#00ffee',       // Color exterior/aura
+    coreColor: '#ffffff',    // Color del núcleo de la línea
+    glowColor: '#00ffee',    // Color del resplandor (shadow)
+    glowRadius: 15,          // Intensidad del resplandor
+    lineWidth: 3,            // Grosor de la línea exterior
+    coreWidth: 1.5,          // Grosor del núcleo blanco
+    landmarkRadius: 4,       // Radio de los puntos (nodos)
+    opacity: 0.8,            // Opacidad general
+    zoom: 1.25,              // ZOOM DE LAS MANOS: 1.0 = normal, 1.5 = 50% más grandes
   },
   face: {
-    color: 'rgba(224, 224, 224, 0.8)', // Color de la malla (incluye alfa)
-    lineWidth: 1,                      // Grosor de la línea
-    scale: 0.35,                       // Escala del mini-mapa (0.25 = 25%, 0.35 = 35%)
-    margin: 20,                        // Margen desde la esquina
-    position: 'bottom-right'           // (No implementado dinámicamente pero indicativo)
+    color: 'rgba(224, 224, 224, 0.4)', 
+    lineWidth: 0.5,
+    scale: 0.45,             // Tamaño de la caja del mini-mapa
+    zoom: 2.0,               // ZOOM DE LA CARA: Para verla de cerca aunque el usuario esté lejos
+    autoCenter: true,        // Centrar automáticamente la cara en el recorte
+    margin: 30,
+    offsetX: 0,              // Ajuste fino horizontal
+    offsetY: 0,              // Ajuste fino vertical
+    position: 'bottom-right'
+  },
+  interaction: {
+    targetX: 0.5,        // Centro horizontal de la flor (0.5 = centro pantalla)
+    targetY: 0.5,        // Centro vertical de la flor (0.5 = centro pantalla)
+    touchRadius: 0.25,   // Cuán cerca hay que estar para activar (0.1 - 0.5 típico)
+    smoothing: 0.15      // Suavizado de la interacción
   }
 };
+
+// Función auxiliar para dibujo estilo Neón/Holográfico
+function drawNeonHand(ctx, landmarks, connections) {
+  if (!landmarks) return;
+
+  const { color, coreColor, glowColor, glowRadius, lineWidth, coreWidth, landmarkRadius } = VISUAL_CONFIG.hands;
+
+  ctx.save();
+  
+  // 1. Dibujar Conexiones (Líneas)
+  connections.forEach(([i, j]) => {
+    const start = landmarks[i];
+    const end = landmarks[j];
+    
+    // Capa de Resplandor (Glow)
+    ctx.beginPath();
+    ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
+    ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
+    
+    ctx.shadowBlur = glowRadius;
+    ctx.shadowColor = glowColor;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Capa de Núcleo (Core) - Brillo central blanco
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = coreColor;
+    ctx.lineWidth = coreWidth;
+    ctx.stroke();
+  });
+
+  // 2. Dibujar Puntos (Nodos/Articulaciones)
+  landmarks.forEach((pt) => {
+    ctx.beginPath();
+    ctx.arc(pt.x * ctx.canvas.width, pt.y * ctx.canvas.height, landmarkRadius, 0, Math.PI * 2);
+    
+    ctx.shadowBlur = glowRadius * 1.5;
+    ctx.shadowColor = glowColor;
+    ctx.fillStyle = color;
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = coreColor;
+    ctx.beginPath();
+    ctx.arc(pt.x * ctx.canvas.width, pt.y * ctx.canvas.height, landmarkRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
 
 export function HandTracker() {
   const videoRef = useRef(null);
@@ -72,156 +138,163 @@ export function HandTracker() {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             
-            // 2. Dibujar Skeleton/Mesh
-            // Configuración de estilo "Holográfico" usando VISUAL_CONFIG
+            // --- NUEVO: Zoom Global de Manos ---
+            if (VISUAL_CONFIG.hands.zoom !== 1.0) {
+              const z = VISUAL_CONFIG.hands.zoom;
+              // Escalar desde el centro del canvas
+              ctx.translate(canvas.width / 2, canvas.height / 2);
+              ctx.scale(z, z);
+              ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            }
             
-            // Estilos para manos
-            // Nota: drawConnectors/drawLandmarks no soportan opacidad global directa en el objeto de estilo simple
-            // pero podemos usar globalAlpha del context si quisiéramos afectar todo.
-            // Para mantener simpleza, usamos los colores definidos.
-            
+            // 2. Dibujar Skeleton/Mesh usando el nuevo sistema Neon
             ctx.globalAlpha = VISUAL_CONFIG.hands.opacity;
-            const handConnectionStyle = { color: VISUAL_CONFIG.hands.color, lineWidth: VISUAL_CONFIG.hands.lineWidth };
-            const handLandmarkStyle = { color: VISUAL_CONFIG.hands.landmarkColor, lineWidth: 0, radius: VISUAL_CONFIG.hands.landmarkRadius };
             
             // --- CAPA 1: MANOS (PANTALLA COMPLETA) ---
             if (results.leftHandLandmarks) {
-               drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS, handConnectionStyle);
-               drawLandmarks(ctx, results.leftHandLandmarks, handLandmarkStyle);
+               drawNeonHand(ctx, results.leftHandLandmarks, HAND_CONNECTIONS);
             }
             if (results.rightHandLandmarks) {
-               drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS, handConnectionStyle);
-               drawLandmarks(ctx, results.rightHandLandmarks, handLandmarkStyle);
+               drawNeonHand(ctx, results.rightHandLandmarks, HAND_CONNECTIONS);
             }
             ctx.globalAlpha = 1.0; // Restaurar opacidad
 
-            // --- CAPA 2: CARA (MINI-MAPA ESQUINA INFERIOR DERECHA) ---
+            // --- CAPA 2: CARA (MINI-MAPA CON ZOOM E INTELIGENCIA) ---
             if (results.faceLandmarks) {
-                ctx.restore(); // Restaurar para limpiar transformaciones anteriores (Full Screen Mirror)
-                ctx.save();    // Guardar nuevo estado limpia
+                ctx.restore(); 
+                ctx.save();   
 
-                // Configuración Mini-mapa desde VISUAL_CONFIG
-                const scale = VISUAL_CONFIG.face.scale; 
-                const margin = VISUAL_CONFIG.face.margin;
-                const miniWidth = canvas.width * scale;
-                const miniHeight = canvas.height * scale;
+                const cfg = VISUAL_CONFIG.face;
+                const canvasW = canvas.width;
+                const canvasH = canvas.height;
+                const boxW = canvasW * cfg.scale;
+                const boxH = canvasH * cfg.scale;
                 
-                // Posicionar en esquina inferior derecha
-                // Translate al origen del mini-mapa
-                const destX = canvas.width - miniWidth - margin;
-                const destY = canvas.height - miniHeight - margin;
-                
+                // Posicionar caja
+                const destX = canvasW - boxW - cfg.margin + cfg.offsetX;
+                const destY = canvasH - boxH - cfg.margin + cfg.offsetY;
                 ctx.translate(destX, destY);
                 
-                // Aplicar escala reducida
-                ctx.scale(scale, scale);
-                
-                // Aplicar Espejo (dentro del espacio escalado)
-                ctx.translate(canvas.width, 0); 
-                ctx.scale(-1, 1);
+                // Clipping (para que el zoom no se salga de la caja)
+                ctx.beginPath();
+                ctx.rect(0, 0, boxW, boxH);
+                ctx.clip();
 
-                // Estilo para la cara
-                const faceStyle = { color: VISUAL_CONFIG.face.color, lineWidth: VISUAL_CONFIG.face.lineWidth };
+                // Aplicar escala del contenedor
+                ctx.scale(cfg.scale, cfg.scale);
                 
+                // Centrar y Zoomear sobre la cara
+                if (cfg.autoCenter) {
+                    const face = results.faceLandmarks;
+                    // El landmark 1 es la punta de la nariz, punto central ideal
+                    const faceCX = face[1].x;
+                    const faceCY = face[1].y;
+
+                    // 1. Mover al centro del mini-mapa (en coordenadas base 0-canvasW)
+                    ctx.translate(canvasW / 2, canvasH / 2);
+                    
+                    // 2. Aplicar ZOOM
+                    ctx.scale(cfg.zoom, cfg.zoom);
+                    
+                    // 3. Mover para que la nariz (espejada) esté en el centro
+                    // Como el video está espejado en el mini-mapa, X es (1 - faceCX)
+                    ctx.translate(-(1 - faceCX) * canvasW, -faceCY * canvasH);
+                }
+
+                // Espejo (solo si no se aplicó arriba en el autoCenter de forma implícita o si queremos mantener lógica clara)
+                // Si no hay autoCenter, usamos el frame completo escalado
+                if (!cfg.autoCenter) {
+                    ctx.translate(canvasW, 0); 
+                    ctx.scale(-1, 1);
+                    ctx.scale(cfg.zoom, cfg.zoom);
+                    // (Aquí el zoom escalaría desde top-left, menos útil)
+                } else {
+                    // En el modo autoCenter, el translate ya maneja el espejo (1-faceCX)
+                    // pero necesitamos que la geometría interna (drawConnectors) se dibuje espejada
+                    ctx.translate(canvasW, 0); 
+                    ctx.scale(-1, 1);
+                }
+
+                const faceStyle = { color: cfg.color, lineWidth: cfg.lineWidth };
                 drawConnectors(ctx, results.faceLandmarks, FACEMESH_TESSELATION, faceStyle);
-                
-                // Nota: No llamamos a restore() aquí porque el restore del final del bloque lo hará, 
-                // pero como hicimos un restore/save intermedio, necesitamos alinear el stack.
-                // El bloque original tiene un ctx.save() al principio (linea 49) y ctx.restore() al final (linea 77).
-                // Al hacer restore() en linea 71, vaciamos ese save inicial.
-                // Luego hacemos save().
-                // Al final del bloque se llamará restore() que cerrará este nuevo save.
-                // Todo cuadra.
-            } else {
-                 // Si no hay cara, simplemente no hacemos nada extra, 
-                 // pero como el bloque principal espera un restore() al final,
-                 // y nosotros no rompimos el stack (porque el 'if' no se ejecutó),
-                 // el restore() final funcionará con el save() inicial.
-                 // PROBLEMA: Si entro en el IF, hago restore+save. Si NO entro, no.
-                 // El restore() final de la linea 77 cerrará LO QUE HAYA ABIERTO.
-                 // Si entre en IF: Cierra el save() de la linea 72. Correcto.
-                 // Si NO entre: Cierra el save() de la linea 49. Correcto.
-            }
+            } 
+
             
             ctx.restore();
         }
 
-        // 1. PROCESAMIENTO MANOS - GESTO "MOISÉS ABRIENDO LAS AGUAS"
-        // Detectamos DOS manos simultáneamente y medimos la separación entre ellas
+        // 1. PROCESAMIENTO MANOS - INTERACCIÓN POR PROXIMIDAD ("TOCAR LA FLOR")
         const rightHand = results.rightHandLandmarks;
         const leftHand = results.leftHandLandmarks;
 
-        if (rightHand && leftHand) {
+        if (rightHand || leftHand) {
             setIsDetected(true);
             
-            // Usamos las muñecas (landmark 0) para medir la distancia entre las manos
-            const leftWrist = leftHand[0];
-            const rightWrist = rightHand[0];
-            
-            // Calculamos la distancia horizontal (eje X) entre las manos
-            const horizontalDist = Math.abs(rightWrist.x - leftWrist.x);
-            
-            // Normalizamos la distancia (0 = juntas, 1 = muy separadas)
-            // Rango típico: 0.05 (juntas) a 0.5+ (separadas)
-            let separation = (horizontalDist - 0.05) / 0.35;
-            separation = Math.max(0, Math.min(1, separation));
-            
-            const current = handStateRef.current;
-            // Ajuste de velocidades: Separar (suave) vs Juntar (rápido)
-            const isSeparating = separation > current;
-            const smoothing = isSeparating ? 0.1 : 0.4; // 0.4 para juntar muy rápido
-            
-            handStateRef.current = current + (separation - current) * smoothing;
+            const cfg = VISUAL_CONFIG.interaction;
+            let maxTouchFactor = 0;
 
-            // --- DETECCIÓN DE ALTURA DE CADA MANO (Para control de luces) ---
-            // La coordenada Y va de 0 (arriba) a 1 (abajo) en MediaPipe
-            // Invertimos para que sea intuitivo: 0 = abajo, 1 = arriba
-            
-            // Mano izquierda
-            let leftHeight = 1 - leftWrist.y;
-            // Normalizamos al rango visible típico (0.3 - 0.7)
-            leftHeight = (leftHeight - 0.3) / 0.4;
-            leftHeight = Math.max(0, Math.min(1, leftHeight));
-            
-            const currentLeftHeight = leftHandHeightRef.current;
-            leftHandHeightRef.current = currentLeftHeight + (leftHeight - currentLeftHeight) * 0.2;
-            
-            // Mano derecha
-            let rightHeight = 1 - rightWrist.y;
-            rightHeight = (rightHeight - 0.3) / 0.4;
-            rightHeight = Math.max(0, Math.min(1, rightHeight));
-            
-            const currentRightHeight = rightHandHeightRef.current;
-            rightHandHeightRef.current = currentRightHeight + (rightHeight - currentRightHeight) * 0.2;
+            // Procesar cada mano detectada
+            [leftHand, rightHand].forEach((hand, idx) => {
+                if (!hand) return;
 
-            // --- NUEVO: Detección de Pinza (Índice vs Pulgar) para color ---
-            // Usamos la mano derecha para el gesto de pinza
-            const rightMidMCP = rightHand[9];
-            const distToMCP = Math.sqrt(Math.pow(rightMidMCP.x - rightWrist.x, 2) + Math.pow(rightMidMCP.y - rightWrist.y, 2));
-            
-            const thumbTip = rightHand[4];
-            const indexTip = rightHand[8];
-            const pinchDist = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
-            const pinchRatio = pinchDist / (distToMCP || 0.001);
+                // Usamos el punto 9 (Palma / Base del dedo corazón) como referencia de posición
+                const palm = hand[9];
+                
+                // Calcular distancia euclidiana al centro de la flor (normalizado 0-1)
+                const dist = Math.sqrt(
+                    Math.pow(palm.x - cfg.targetX, 2) + 
+                    Math.pow(palm.y - cfg.targetY, 2)
+                );
 
-            // Si el ratio es bajo (dedos juntos), pinch = 1
-            // Umbral aprox 0.3. Invertimos rango.
-            let pinch = 1 - (pinchRatio / 0.35);
-            pinch = Math.max(0, Math.min(1, pinch));
+                // Calcular factor de toque (1 = en el centro, 0 = fuera del radio)
+                let touchFactor = 1 - (dist / cfg.touchRadius);
+                touchFactor = Math.max(0, Math.min(1, touchFactor));
+                
+                if (touchFactor > maxTouchFactor) maxTouchFactor = touchFactor;
 
-            const currentPinch = pinchStateRef.current;
-            const isPinching = pinch > currentPinch;
-            const pinchSmoothing = isPinching ? 0.15 : 0.4;
+                // --- ALTURA DE MANO (Control de Luces independiente) ---
+                // Mantenemos la lógica de altura para las luces dinámicas
+                const wrist = hand[0];
+                let height = 1 - wrist.y;
+                height = (height - 0.3) / 0.4;
+                height = Math.max(0, Math.min(1, height));
 
-            pinchStateRef.current = currentPinch + (pinch - currentPinch) * pinchSmoothing;
+                if (idx === 0) { // Mano Izquierda
+                    leftHandHeightRef.current += (height - leftHandHeightRef.current) * 0.2;
+                } else { // Mano Derecha
+                    rightHandHeightRef.current += (height - rightHandHeightRef.current) * 0.2;
+                }
+            });
+
+            // Actualizar estado general de la flor (handStateRef)
+            const currentHandState = handStateRef.current;
+            handStateRef.current = currentHandState + (maxTouchFactor - currentHandState) * cfg.smoothing;
+
+            // --- DETECCIÓN DE PINZA (Color) ---
+            // Usamos la mano derecha preferentemente para el pinch o la primera que se encuentre
+            const controlHand = rightHand || leftHand;
+            if (controlHand) {
+                const wrist = controlHand[0];
+                const rightMidMCP = controlHand[9];
+                const distToMCP = Math.sqrt(Math.pow(rightMidMCP.x - wrist.x, 2) + Math.pow(rightMidMCP.y - wrist.y, 2));
+                const thumbTip = controlHand[4];
+                const indexTip = controlHand[8];
+                const pinchDist = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
+                const pinchRatio = pinchDist / (distToMCP || 0.001);
+                
+                let pinch = 1 - (pinchRatio / 0.35);
+                pinch = Math.max(0, Math.min(1, pinch));
+                
+                const currentPinch = pinchStateRef.current;
+                pinchStateRef.current = currentPinch + (pinch - currentPinch) * 0.2;
+            }
             
         } else {
             setIsDetected(false);
-            // Decay más rápido (0.8) para resetear sensación ágil al perder tracking
-            handStateRef.current = handStateRef.current * 0.8;
-            pinchStateRef.current = pinchStateRef.current * 0.8;
-            leftHandHeightRef.current = leftHandHeightRef.current * 0.9;
-            rightHandHeightRef.current = rightHandHeightRef.current * 0.9;
+            handStateRef.current *= 0.85;
+            pinchStateRef.current *= 0.85;
+            leftHandHeightRef.current *= 0.9;
+            rightHandHeightRef.current *= 0.9;
         }
 
         // 2. PROCESAMIENTO CARA
