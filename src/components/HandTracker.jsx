@@ -4,6 +4,25 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { Camera } from '@mediapipe/camera_utils';
 import { useHandControl } from './HandContext';
 
+// --- CONFIGURACIÓN VISUAL ---
+// Ajusta aquí los colores, tamaños y comportamientos visuales
+const VISUAL_CONFIG = {
+  hands: {
+    color: '#00ffee', // Color de las líneas
+    lineWidth: 4,     // Grosor de las líneas
+    landmarkColor: '#ff0033', // Color de los puntos
+    landmarkRadius: 4,        // Tamaño de los puntos
+    opacity: 1.0      // Opacidad general de las manos (0.0 - 1.0)
+  },
+  face: {
+    color: 'rgba(224, 224, 224, 0.8)', // Color de la malla (incluye alfa)
+    lineWidth: 1,                      // Grosor de la línea
+    scale: 0.35,                       // Escala del mini-mapa (0.25 = 25%, 0.35 = 35%)
+    margin: 20,                        // Margen desde la esquina
+    position: 'bottom-right'           // (No implementado dinámicamente pero indicativo)
+  }
+};
+
 export function HandTracker() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -40,10 +59,10 @@ export function HandTracker() {
         if (canvas && video) {
             const ctx = canvas.getContext('2d');
             
-            // Ajustar tamaño del canvas al video si es necesario
-            if (canvas.width !== video.videoWidth) {
-                 canvas.width = video.videoWidth;
-                 canvas.height = video.videoHeight;
+            // Ajustar tamaño del canvas a la ventana para pantalla completa
+            if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+                 canvas.width = window.innerWidth;
+                 canvas.height = window.innerHeight;
             }
 
             ctx.save();
@@ -54,24 +73,74 @@ export function HandTracker() {
             ctx.scale(-1, 1);
             
             // 2. Dibujar Skeleton/Mesh
-            // Configuración de estilo "Holográfico"
-            const connectionStyle = { color: '#00ffee', lineWidth: 1 };
-            const landmarkStyle = { color: '#ff0033', lineWidth: 0, radius: 1 }; // Puntos rojos muy pequeños
-            const faceStyle = { color: '#e0e0e0', lineWidth: 0.5 };
-
-            // Cara (Tesselation = malla completa)
-            if (results.faceLandmarks) {
-               drawConnectors(ctx, results.faceLandmarks, FACEMESH_TESSELATION, faceStyle);
-            }
+            // Configuración de estilo "Holográfico" usando VISUAL_CONFIG
             
-            // Manos
+            // Estilos para manos
+            // Nota: drawConnectors/drawLandmarks no soportan opacidad global directa en el objeto de estilo simple
+            // pero podemos usar globalAlpha del context si quisiéramos afectar todo.
+            // Para mantener simpleza, usamos los colores definidos.
+            
+            ctx.globalAlpha = VISUAL_CONFIG.hands.opacity;
+            const handConnectionStyle = { color: VISUAL_CONFIG.hands.color, lineWidth: VISUAL_CONFIG.hands.lineWidth };
+            const handLandmarkStyle = { color: VISUAL_CONFIG.hands.landmarkColor, lineWidth: 0, radius: VISUAL_CONFIG.hands.landmarkRadius };
+            
+            // --- CAPA 1: MANOS (PANTALLA COMPLETA) ---
             if (results.leftHandLandmarks) {
-               drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS, connectionStyle);
-               drawLandmarks(ctx, results.leftHandLandmarks, landmarkStyle);
+               drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS, handConnectionStyle);
+               drawLandmarks(ctx, results.leftHandLandmarks, handLandmarkStyle);
             }
             if (results.rightHandLandmarks) {
-               drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS, connectionStyle);
-               drawLandmarks(ctx, results.rightHandLandmarks, landmarkStyle);
+               drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS, handConnectionStyle);
+               drawLandmarks(ctx, results.rightHandLandmarks, handLandmarkStyle);
+            }
+            ctx.globalAlpha = 1.0; // Restaurar opacidad
+
+            // --- CAPA 2: CARA (MINI-MAPA ESQUINA INFERIOR DERECHA) ---
+            if (results.faceLandmarks) {
+                ctx.restore(); // Restaurar para limpiar transformaciones anteriores (Full Screen Mirror)
+                ctx.save();    // Guardar nuevo estado limpia
+
+                // Configuración Mini-mapa desde VISUAL_CONFIG
+                const scale = VISUAL_CONFIG.face.scale; 
+                const margin = VISUAL_CONFIG.face.margin;
+                const miniWidth = canvas.width * scale;
+                const miniHeight = canvas.height * scale;
+                
+                // Posicionar en esquina inferior derecha
+                // Translate al origen del mini-mapa
+                const destX = canvas.width - miniWidth - margin;
+                const destY = canvas.height - miniHeight - margin;
+                
+                ctx.translate(destX, destY);
+                
+                // Aplicar escala reducida
+                ctx.scale(scale, scale);
+                
+                // Aplicar Espejo (dentro del espacio escalado)
+                ctx.translate(canvas.width, 0); 
+                ctx.scale(-1, 1);
+
+                // Estilo para la cara
+                const faceStyle = { color: VISUAL_CONFIG.face.color, lineWidth: VISUAL_CONFIG.face.lineWidth };
+                
+                drawConnectors(ctx, results.faceLandmarks, FACEMESH_TESSELATION, faceStyle);
+                
+                // Nota: No llamamos a restore() aquí porque el restore del final del bloque lo hará, 
+                // pero como hicimos un restore/save intermedio, necesitamos alinear el stack.
+                // El bloque original tiene un ctx.save() al principio (linea 49) y ctx.restore() al final (linea 77).
+                // Al hacer restore() en linea 71, vaciamos ese save inicial.
+                // Luego hacemos save().
+                // Al final del bloque se llamará restore() que cerrará este nuevo save.
+                // Todo cuadra.
+            } else {
+                 // Si no hay cara, simplemente no hacemos nada extra, 
+                 // pero como el bloque principal espera un restore() al final,
+                 // y nosotros no rompimos el stack (porque el 'if' no se ejecutó),
+                 // el restore() final funcionará con el save() inicial.
+                 // PROBLEMA: Si entro en el IF, hago restore+save. Si NO entro, no.
+                 // El restore() final de la linea 77 cerrará LO QUE HAYA ABIERTO.
+                 // Si entre en IF: Cierra el save() de la linea 72. Correcto.
+                 // Si NO entre: Cierra el save() de la linea 49. Correcto.
             }
             
             ctx.restore();
@@ -229,30 +298,17 @@ export function HandTracker() {
   }, [setIsDetected]);
 
   return (
-    <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 100, pointerEvents: 'none' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none' }}>
       {/* Ocultamos el video raw, mostramos el canvas procesado */}
       <video ref={videoRef} style={{ display: 'none' }} playsInline></video>
       <canvas 
         ref={canvasRef} 
         style={{ 
-          width: '240px', 
-          height: '180px', 
-          borderRadius: '12px',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          width: '100%', 
+          height: '100%',
+          display: 'block'
         }} 
       />
-      <div style={{
-          position: 'absolute',
-          bottom: 5, right: 10,
-          color: 'white',
-          fontSize: '10px',
-          fontFamily: 'sans-serif',
-          opacity: 0.7
-      }}>
-          Vision Debug
-      </div>
     </div>
   );
 }
