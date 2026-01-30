@@ -32,7 +32,7 @@ const VISUAL_CONFIG = {
   interaction: {
     targetX: 0.5,        // Centro horizontal de la flor (0.5 = centro pantalla)
     targetY: 0.5,        // Centro vertical de la flor (0.5 = centro pantalla)
-    touchRadius: 0.25,   // Cuán cerca hay que estar para activar (0.1 - 0.5 típico)
+    touchRadius: 0.15,   // Cuán cerca hay que estar para activar (0.1 - 0.5 típico)
     smoothing: 0.15      // Suavizado de la interacción
   }
 };

@@ -39,7 +39,7 @@ function App() {
       <HandTracker />
       <Canvas
         shadows
-        camera={{ position: [0, 2, 5], fov: 45 }}
+        camera={{ position: [0, 1.5, 4], fov: 45 }}
         dpr={[1, 1.25]}
         gl={{ powerPreference: 'high-performance', antialias: false }}
       >
