@@ -8,8 +8,8 @@ const LIGHT_CONFIG = {
   // Luz Izquierda (controlada por mano izquierda)
   left: {
     position: [-1.5, 1, 0],    // MUY cerca de la flor (en el espacio local del grupo)
-    baseColor: '#8dff30ff',      // Naranja suave (mano abajo)
-    activeColor: '#00cb00ff',    // ROJO PURO (mano arriba) - Cambio dramático
+    baseColor: '#8dff30',      // Naranja suave (mano abajo)
+    activeColor: '#00cb00',    // ROJO PURO (mano arriba) - Cambio dramático
     baseIntensity: 1.5,        // Subido a 1.5
     maxIntensity: 8,           // Subido a 8
     distance: 10,              // Radio un poco más amplio
@@ -19,7 +19,7 @@ const LIGHT_CONFIG = {
   right: {
     position: [1.5, 1, 0],     // MUY cerca de la flor (en el espacio local del grupo)
     baseColor: '#b0aaff',      // Morado suave (mano abajo)
-    activeColor: '#ffd900ff',    // MAGENTA NEÓN (mano arriba) - Cambio dramático
+    activeColor: '#ffd900',    // MAGENTA NEÓN (mano arriba) - Cambio dramático
     baseIntensity: 2,          // Reducido de 4 a 2
     maxIntensity: 12,          // Reducido de 20 a 12
     distance: 10,              // Distancia de alcance de la luz
