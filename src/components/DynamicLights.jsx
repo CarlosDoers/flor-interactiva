@@ -8,30 +8,52 @@ const LIGHT_CONFIG = {
   // Luz Izquierda (controlada por mano izquierda)
   left: {
     position: [-1.5, 1, 0],    // MUY cerca de la flor (en el espacio local del grupo)
-    baseColor: '#ffc8aa',      // Naranja suave (mano abajo)
-    activeColor: '#ff0000',    // ROJO PURO (mano arriba) - Cambio dramático
-    baseIntensity: 4,          // Intensidad base aumentada
-    maxIntensity: 20,          // Intensidad MÁXIMA para efecto muy visible
-    distance: 10,              // Distancia de alcance de la luz
+    baseColor: '#8dff30ff',      // Naranja suave (mano abajo)
+    activeColor: '#00cb00ff',    // ROJO PURO (mano arriba) - Cambio dramático
+    baseIntensity: 1.5,        // Subido a 1.5
+    maxIntensity: 8,           // Subido a 8
+    distance: 10,              // Radio un poco más amplio
     decay: 2,                  // Caída de la luz
   },
   // Luz Derecha (controlada por mano derecha)
   right: {
     position: [1.5, 1, 0],     // MUY cerca de la flor (en el espacio local del grupo)
     baseColor: '#b0aaff',      // Morado suave (mano abajo)
-    activeColor: '#ff00ff',    // MAGENTA NEÓN (mano arriba) - Cambio dramático
-    baseIntensity: 4,          // Intensidad base aumentada
-    maxIntensity: 20,          // Intensidad MÁXIMA para efecto muy visible
+    activeColor: '#ffd900ff',    // MAGENTA NEÓN (mano arriba) - Cambio dramático
+    baseIntensity: 2,          // Reducido de 4 a 2
+    maxIntensity: 12,          // Reducido de 20 a 12
     distance: 10,              // Distancia de alcance de la luz
     decay: 2,                  // Caída de la luz
+  },
+  // LUZ DE GESTOS FACIALES (Efecto dramático de teatro)
+  face: {
+    // Luz Principal (Frontal/Superior)
+    position: [0, 3, 2],
+    smileColor: '#ff2200',     // Naranja/Rojo muy vivo (ajustado por usuario)
+    eyebrowColor: '#00ccff',   // Cian eléctrico
+    maxIntensity: 120,          // Punto medio (estaba en 15, antes en 40-80)
+    distance: 15,
+    angle: 0.6,
+    penumbra: 0.6,             // Volvemos a un borde algo más definido
+    
+    // Luz de Contorno (Rim Light)
+    rimPosition: [0, 2, 5],
+    rimIntensity: 18,          // Subido de 6 a 18 para más brillo en bordes
+  },
+  // GESTO DE PINZA
+  pinch: {
+    color: '#bc13fe',
+    influence: 0.8             // Cuánto domina el color violeta
   }
 };
 
 export function DynamicLights() {
   const leftLightRef = useRef();
   const rightLightRef = useRef();
+  const faceMainLightRef = useRef();
+  const faceRimLightRef = useRef();
   
-  const { leftHandHeightRef, rightHandHeightRef } = useHandControl();
+  const { leftHandHeightRef, rightHandHeightRef, faceStateRef, pinchStateRef } = useHandControl();
   
   // Colores pre-creados para interpolación (optimización)
   const leftBaseColor = useRef(new THREE.Color(LIGHT_CONFIG.left.baseColor));
@@ -40,6 +62,9 @@ export function DynamicLights() {
   const rightActiveColor = useRef(new THREE.Color(LIGHT_CONFIG.right.activeColor));
   
   const tempColor = useRef(new THREE.Color());
+  const faceSmileColor = useRef(new THREE.Color(LIGHT_CONFIG.face.smileColor));
+  const faceEyebrowColor = useRef(new THREE.Color(LIGHT_CONFIG.face.eyebrowColor));
+  const pinchColor = useRef(new THREE.Color(LIGHT_CONFIG.pinch.color));
 
   useFrame(() => {
     const leftHeight = leftHandHeightRef.current;
@@ -78,6 +103,54 @@ export function DynamicLights() {
         0.15
       );
     }
+
+    // --- LUCES DE GESTOS (Cara y Pinch unidos) ---
+    const { smile, eyebrows } = faceStateRef.current;
+    const pinch = pinchStateRef.current;
+    
+    // 1. Calculamos intensidad combinada (gestos faciales + pinza)
+    const gestureIntensity = Math.max(smile, eyebrows, pinch * 0.8);
+    
+    // 2. Calculamos el color base del gesto (mezcla sonrisa/cejas)
+    tempColor.current.copy(faceSmileColor.current);
+    const faceMix = eyebrows / (smile + eyebrows || 1);
+    tempColor.current.lerp(faceEyebrowColor.current, faceMix);
+    
+    // 3. Mezclamos con el color de la pinza si existe
+    if (pinch > 0.01) {
+      tempColor.current.lerp(pinchColor.current, pinch * 0.8);
+    }
+
+    // APLICAR A LUZ FRONTAL (Spot)
+    if (faceMainLightRef.current) {
+      faceMainLightRef.current.color.copy(tempColor.current);
+      const targetIntensity = gestureIntensity * LIGHT_CONFIG.face.maxIntensity;
+      faceMainLightRef.current.intensity = THREE.MathUtils.lerp(
+        faceMainLightRef.current.intensity, 
+        targetIntensity, 
+        0.1
+      );
+    }
+
+    // APLICAR A LUZ DE CONTORNO (Rim)
+    if (faceRimLightRef.current) {
+      faceRimLightRef.current.color.copy(tempColor.current);
+      const targetRimIntensity = gestureIntensity * LIGHT_CONFIG.face.rimIntensity;
+      faceRimLightRef.current.intensity = THREE.MathUtils.lerp(
+        faceRimLightRef.current.intensity, 
+        targetRimIntensity, 
+        0.1
+      );
+    }
+
+    // 4. APLICAR INFLUENCIA DE PINCH A LAS LUCES LATERALES (solo color)
+    if (pinch > 0.01) {
+      [leftLightRef, rightLightRef].forEach(ref => {
+        if (ref.current) {
+          ref.current.color.lerp(pinchColor.current, pinch * 0.4);
+        }
+      });
+    }
   });
 
   return (
@@ -97,6 +170,28 @@ export function DynamicLights() {
         color={LIGHT_CONFIG.right.baseColor}
         distance={LIGHT_CONFIG.right.distance}
         decay={LIGHT_CONFIG.right.decay}
+      />
+      
+      {/* Luz Focal de Cara (SpotLight para más drama) */}
+      <spotLight 
+        ref={faceMainLightRef}
+        position={LIGHT_CONFIG.face.position}
+        intensity={0}
+        color={LIGHT_CONFIG.face.smileColor}
+        distance={LIGHT_CONFIG.face.distance}
+        angle={LIGHT_CONFIG.face.angle}
+        penumbra={LIGHT_CONFIG.face.penumbra}
+        decay={1}
+      />
+
+      {/* Luz de Contorno (Aporta profundidad y resalta la silueta) */}
+      <pointLight 
+        ref={faceRimLightRef}
+        position={LIGHT_CONFIG.face.rimPosition}
+        intensity={0}
+        color={LIGHT_CONFIG.face.smileColor}
+        distance={10}
+        decay={1}
       />
     </>
   );

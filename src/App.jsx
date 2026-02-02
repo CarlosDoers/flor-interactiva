@@ -60,7 +60,7 @@ function App() {
         <DyingUniverse />
         {/* <DynamicBackground /> */}
         
-        <group position={[0, 0.1, 2.2]}>
+        <group position={[0, 0.1, 2.2]} rotation={[0.3, 0, 0]}>
           {/* Luces dinámicas MUY cerca de la flor */}
           <DynamicLights />
           
@@ -81,7 +81,7 @@ function App() {
             chromaticAberration={0.5} 
             backside={true}
             causticsOnly={false} 
-            resolution={1024}
+            resolution={720}
           >
              <Flower />
           </Caustics>

@@ -19,12 +19,8 @@ export function Flower(props) {
   const targetMeshes = useRef([]); // Optimización: Cache de meshes
   
   // Consumir datos de la mano Y de la cara
-  const { handStateRef, faceStateRef, pinchStateRef } = useHandControl();
+  const { handStateRef } = useHandControl();
 
-  // Colores emocionales (el base se tomará del modelo original)
-  const smileColor = useMemo(() => new THREE.Color('#ff0033'), []); // Rojo intenso (Alegría/Amor)
-  const surpriseColor = useMemo(() => new THREE.Color('#00bfff'), []); // Azul Cian (Sorpresa/Energía)
-  const pinchColor = useMemo(() => new THREE.Color('#bc13fe'), []); // Nuevo: Violeta Neón (Pinch)
   const tempColor = useMemo(() => new THREE.Color(), []);
 
   // Preparamos la escena UNA sola vez con materiales mejorados (Brillo/Metal)
@@ -44,9 +40,9 @@ export function Flower(props) {
 
         // --- PROPIEDADES VISUALES PRINCIPALES ---
         // Aquí es donde ocurre la magia visual
-        child.material.metalness = 0.8;       // Más metálico para reflejar luz
-        child.material.roughness = 0.5;       // Liso para brillos definidos
-        child.material.envMapIntensity = 2.0; // Intensidad del reflejo del entorno
+        child.material.metalness = 0.9;       // Más metálico para reflejar luz
+        child.material.roughness = 0.4;       // Liso para brillos definidos
+        child.material.envMapIntensity = 4.0; // Intensidad del reflejo del entorno
         
         // Aseguramos que sea StandardMaterial para soportar luces físicas
         if (!(child.material instanceof THREE.MeshStandardMaterial)) {
@@ -54,9 +50,9 @@ export function Flower(props) {
           if (originalMat.map) newMat.map = originalMat.map;
           if (originalMat.color) newMat.color = originalMat.color;
           // Re-aplicar propiedades si tuvimos que crear material nuevo
-          newMat.metalness = 0.8;
-          newMat.roughness = 0.5;
-          newMat.envMapIntensity = 2.0;
+          newMat.metalness = 0.9;
+          newMat.roughness = 0.4;
+          newMat.envMapIntensity = 4.0;
           child.material = newMat;
         }
       }
@@ -77,8 +73,6 @@ export function Flower(props) {
   // Mantenemos el movimiento de rotación existente, ahora reactivo
   useFrame((state, delta) => {
     const handState = handStateRef.current; 
-    const { smile, eyebrows } = faceStateRef.current;
-    const pinch = pinchStateRef.current;
     
     if (modelRef.current) {
       // 1. Dinámica de Movimiento (Mano)
@@ -94,31 +88,8 @@ export function Flower(props) {
               // Recuperamos el color original
               tempColor.copy(child.userData.originalColor);
               
-              // Definimos prioridades de mezcla
-              // Pinza (Mano) -> Violeta
-              if (pinch > 0.01) tempColor.lerp(pinchColor, pinch);
-
-              // Sonrisa (Cara) -> Dorado
-              if (smile > 0.01) tempColor.lerp(smileColor, smile); 
-              
-              // Sorpresa (Cara) -> Azul
-              if (eyebrows > 0.01) tempColor.lerp(surpriseColor, eyebrows);
-
               // Aplicamos al material suavemente
               child.material.color.lerp(tempColor, 0.1);
-              
-              // Efecto de emisión (brillo)
-              const intensity = Math.max(smile, eyebrows, pinch);
-              if (child.material.emissive) {
-                  // Si hay intensidad, actualizamos el color emisivo
-                  if (intensity > 0.05) child.material.emissive.copy(tempColor);
-
-                  child.material.emissiveIntensity = THREE.MathUtils.lerp(
-                      child.material.emissiveIntensity || 0, 
-                      intensity * 0.5, 
-                      0.1
-                  );
-              }
           }
       });
     }

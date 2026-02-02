@@ -14,8 +14,8 @@ const VISUAL_CONFIG = {
     glowRadius: 15,          // Intensidad del resplandor
     lineWidth: 3,            // Grosor de la línea exterior
     coreWidth: 1.5,          // Grosor del núcleo blanco
-    landmarkRadius: 4,       // Radio de los puntos (nodos)
-    opacity: 0.8,            // Opacidad general
+    landmarkRadius: 6,       // Radio de los puntos (nodos)
+    opacity: 0.3,            // Opacidad general
     zoom: 1.25,              // ZOOM DE LAS MANOS: 1.0 = normal, 1.5 = 50% más grandes
   },
   face: {
