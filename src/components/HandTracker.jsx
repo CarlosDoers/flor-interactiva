@@ -29,16 +29,16 @@ const VISUAL_CONFIG = {
     maxX: 0.6
   },
   fist: {
-    minX: 0.3,           // Rango horizontal (30%)
-    maxX: 0.7,           // Rango horizontal (70%)
-    minY: 0.4,           // Rango vertical (40%)
-    maxY: 0.6,           // Rango vertical (60%)
+    minX: 0.25,           // Rango horizontal (30%)
+    maxX: 0.75,           // Rango horizontal (70%)
+    minY: 0.25,           // Rango vertical (40%)
+    maxY: 0.75,           // Rango vertical (60%)
     smoothing: 0.15      // Velocidad de transición
   },
   face: {
     smileLower: 0.42,    // Humbral base sonrisa
     smileUpper: 0.52,    // Humbral tope sonrisa
-    eyebrowsLower: 0.09, // Humbral base cejas (Aumentado para evitar falsos positivos) Si ves que se activa solo, sube este valor (ej: 0.10)
+    eyebrowsLower: 0.08, // Humbral base cejas (Aumentado para evitar falsos positivos) Si ves que se activa solo, sube este valor (ej: 0.10)
     eyebrowsUpper: 0.12, // Humbral tope cejas - Si te cuesta mucho activarlo al máximo, baja este valor (ej: 0.11).
     smoothingActive: 0.1, // Suavizado al activar
     smoothingRelax: 0.4   // Suavizado al relajar
