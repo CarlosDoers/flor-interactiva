@@ -8,6 +8,7 @@ import { DyingUniverse } from './components/DyingUniverse';
 import { DynamicLights } from './components/DynamicLights';
 import { HandControlProvider } from './components/HandContext';
 import { HandTracker } from './components/HandTracker';
+import { InteractiveInstructions } from './components/InteractiveInstructions';
 import './App.css';
 
 function Loader() {
@@ -36,6 +37,7 @@ function App() {
   return (
     <HandControlProvider>
       <HandTracker />
+      <InteractiveInstructions />
       <Canvas
         shadows
         camera={{ position: [0, 1.5, 4], fov: 45 }}
@@ -90,20 +92,6 @@ function App() {
       
       <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 1.75} />
       </Canvas>
-      <div className="ui-hint" style={{
-        position: 'absolute', 
-        bottom: 30, 
-        left: '50%', 
-        transform: 'translateX(-50%)',
-        color: 'rgba(255,255,255,0.7)',
-        fontFamily: 'sans-serif',
-        fontSize: '14px',
-        textAlign: 'center',
-        pointerEvents: 'none'
-      }}>
-        🙌 Junta y separa tus dos manos para interactuar<br />
-        ✋ Levanta cada mano para cambiar las luces
-      </div>
     </HandControlProvider>
   );
 }
