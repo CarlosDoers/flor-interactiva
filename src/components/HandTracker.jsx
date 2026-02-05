@@ -156,8 +156,8 @@ export function HandTracker() {
                 miniCanvas.height = miniCanvas.clientHeight;
             }
             mCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
-            mCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            mCtx.lineWidth = 0.5;
+            mCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            mCtx.lineWidth = 0.8;
             
             mCtx.beginPath();
             const landmarks = results.faceLandmarks;

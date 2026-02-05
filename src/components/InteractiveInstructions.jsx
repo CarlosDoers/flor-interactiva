@@ -104,12 +104,12 @@ export function InteractiveInstructions() {
         }
 
         .instruction-card, .face-mesh-card {
-          width: 240px;
+          width: 320px;
           background: rgba(0, 0, 0, 0.4);
           backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 20px;
-          padding: 20px;
+          padding: 30px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -118,7 +118,7 @@ export function InteractiveInstructions() {
         }
 
         .instruction-card {
-           min-height: 120px;
+           min-height: 160px;
            text-align: center;
         }
 
@@ -129,8 +129,8 @@ export function InteractiveInstructions() {
         }
 
         .instruction-icon {
-          font-size: 24px;
-          margin-bottom: 10px;
+          font-size: 32px;
+          margin-bottom: 15px;
           color: white;
           filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
         }
@@ -138,15 +138,15 @@ export function InteractiveInstructions() {
         .instruction-text {
           color: white;
           font-family: 'Inter', sans-serif;
-          font-size: 15px;
+          font-size: 18px;
           line-height: 1.4;
           font-weight: 300;
           letter-spacing: 0.3px;
         }
 
         .face-mesh-card {
-          height: 140px;
-          padding: 10px;
+          height: 200px;
+          padding: 15px;
           overflow: hidden;
         }
 
@@ -154,7 +154,7 @@ export function InteractiveInstructions() {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          opacity: 0.6;
+          opacity: 0.9;
         }
 
         @keyframes pulseSuccess {
