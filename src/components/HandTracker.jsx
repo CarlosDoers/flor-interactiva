@@ -92,7 +92,7 @@ function drawNeonHand(ctx, landmarks, connections) {
 export function HandTracker() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { handStateRef, faceStateRef, pinchStateRef, leftHandHeightRef, rightHandHeightRef, setIsDetected } = useHandControl();
+  const { handStateRef, faceStateRef, fistStateRef, pinchStateRef, leftHandHeightRef, rightHandHeightRef, setIsDetected } = useHandControl();
   const holisticRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -287,12 +287,31 @@ export function HandTracker() {
                 
                 const currentPinch = pinchStateRef.current;
                 pinchStateRef.current = currentPinch + (pinch - currentPinch) * 0.2;
+
+                // --- DETECCIÓN DE PUÑO (Fist) ---
+                const fingerTips = [8, 12, 16, 20]; // Puntas de los dedos (menos pulgar)
+                let avgFingerDist = 0;
+                fingerTips.forEach(idx => {
+                    avgFingerDist += Math.sqrt(
+                        Math.pow(controlHand[idx].x - wrist.x, 2) + 
+                        Math.pow(controlHand[idx].y - wrist.y, 2)
+                    );
+                });
+                avgFingerDist /= 4;
+                
+                // Un ratio bajo indica mano cerrada
+                const fistRatio = avgFingerDist / (distToMCP || 0.001);
+                let fist = 1 - (fistRatio - 0.6) / 1.0; 
+                fist = Math.max(0, Math.min(1, fist));
+                
+                fistStateRef.current = fistStateRef.current + (fist - fistStateRef.current) * 0.15;
             }
             
         } else {
             setIsDetected(false);
             handStateRef.current *= 0.85;
             pinchStateRef.current *= 0.85;
+            fistStateRef.current *= 0.85;
             leftHandHeightRef.current *= 0.9;
             rightHandHeightRef.current *= 0.9;
         }

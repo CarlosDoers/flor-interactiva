@@ -105,16 +105,14 @@ export function DynamicLights() {
     }
 
     // --- LUCES DE GESTOS (Cara y Pinch unidos) ---
-    const { smile, eyebrows } = faceStateRef.current;
+    const { smile } = faceStateRef.current;
     const pinch = pinchStateRef.current;
     
-    // 1. Calculamos intensidad combinada (gestos faciales + pinza)
-    const gestureIntensity = Math.max(smile, eyebrows, pinch * 0.8);
+    // 1. Calculamos intensidad combinada (gesto de sonrisa + pinza)
+    const gestureIntensity = Math.max(smile, pinch * 0.8);
     
-    // 2. Calculamos el color base del gesto (mezcla sonrisa/cejas)
+    // 2. Usamos el color de sonrisa como base
     tempColor.current.copy(faceSmileColor.current);
-    const faceMix = eyebrows / (smile + eyebrows || 1);
-    tempColor.current.lerp(faceEyebrowColor.current, faceMix);
     
     // 3. Mezclamos con el color de la pinza si existe
     if (pinch > 0.01) {

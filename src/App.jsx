@@ -3,7 +3,6 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Caustics, Html, useProgress } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Flower } from './components/Flower';
-import { PrismaticBeams } from './components/PrismaticBeams';
 // import { DynamicBackground } from './components/DynamicBackground';
 import { DyingUniverse } from './components/DyingUniverse';
 import { DynamicLights } from './components/DynamicLights';
@@ -64,11 +63,6 @@ function App() {
           {/* Luces dinámicas MUY cerca de la flor */}
           <DynamicLights />
           
-          {/* Efectos de Luz Volumétrica (Rayos Prisma) */}
-          <group position={[0, 0.82, 0]}>
-            <PrismaticBeams />
-          </group>
-
           {/* Efecto de Cáusticas (Rayos de luz proyectados) */}
           <Caustics
             backfaces

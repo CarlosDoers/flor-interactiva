@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useHandControl } from './HandContext';
+import { PrismaticBeams } from './PrismaticBeams';
 
 // --- CONFIGURACIÓN DE LA FLOR REACTIVA ---
 const FLOWER_CONFIG = {
@@ -19,7 +20,7 @@ export function Flower(props) {
   const targetMeshes = useRef([]); // Optimización: Cache de meshes
   
   // Consumir datos de la mano Y de la cara
-  const { handStateRef } = useHandControl();
+  const { faceStateRef, fistStateRef } = useHandControl();
 
   const tempColor = useMemo(() => new THREE.Color(), []);
 
@@ -70,25 +71,27 @@ export function Flower(props) {
     });
   }, [enhancedScene]);
 
-  // Mantenemos el movimiento de rotación existente, ahora reactivo
+  // Mantenemos el movimiento de rotación existente, ahora reactivo al gesto de las cejas
   useFrame((state, delta) => {
-    const handState = handStateRef.current; 
+    const { eyebrows } = faceStateRef.current; 
+    const fistState = fistStateRef.current;
     
     if (modelRef.current) {
-      // 1. Dinámica de Movimiento (Mano)
-      const speed = FLOWER_CONFIG.baseRotationSpeed + (handState * FLOWER_CONFIG.rotationBoost);
+      // 1. Dinámica de Movimiento (Cejas para crecer, Puño para encoger)
+      const speed = FLOWER_CONFIG.baseRotationSpeed + (eyebrows * FLOWER_CONFIG.rotationBoost);
       modelRef.current.rotation.y += delta * speed;
 
-      const targetScale = FLOWER_CONFIG.baseScale + (handState * FLOWER_CONFIG.maxGrowth);
+      // Escala: Base + Cejas (crece) - Puño (encoge)
+      const growth = eyebrows * FLOWER_CONFIG.maxGrowth;
+      const shrink = fistState * 0.4; // Factor de encogimiento
+      const targetScale = Math.max(0.5, FLOWER_CONFIG.baseScale + growth - shrink);
+      
       modelRef.current.scale.set(targetScale, targetScale, targetScale);
 
-      // 2. Dinámica de Color (Cara y Gestos) -- OPTIMIZADO: Itera array plano, no el árbol
+      // 2. Dinámica de Color (Cara y Gestos)
       targetMeshes.current.forEach((child) => {
           if (child.userData.originalColor) {
-              // Recuperamos el color original
               tempColor.copy(child.userData.originalColor);
-              
-              // Aplicamos al material suavemente
               child.material.color.lerp(tempColor, 0.1);
           }
       });
@@ -98,6 +101,10 @@ export function Flower(props) {
   return (
     <group ref={modelRef} {...props}>
       <primitive object={enhancedScene} />
+      {/* Rayos unificados: se mueven y escalan con el grupo padre */}
+      <group position={[0, 0.82, 0]}>
+        <PrismaticBeams />
+      </group>
     </group>
   );
 }
