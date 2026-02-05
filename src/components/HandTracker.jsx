@@ -27,6 +27,21 @@ const VISUAL_CONFIG = {
     intensity: 1.1,
     minX: 0.4,
     maxX: 0.6
+  },
+  fist: {
+    minX: 0.3,           // Rango horizontal (30%)
+    maxX: 0.7,           // Rango horizontal (70%)
+    minY: 0.4,           // Rango vertical (40%)
+    maxY: 0.6,           // Rango vertical (60%)
+    smoothing: 0.15      // Velocidad de transición
+  },
+  face: {
+    smileLower: 0.42,    // Humbral base sonrisa
+    smileUpper: 0.52,    // Humbral tope sonrisa
+    eyebrowsLower: 0.09, // Humbral base cejas (Aumentado para evitar falsos positivos)
+    eyebrowsUpper: 0.13, // Humbral tope cejas
+    smoothingActive: 0.1, // Suavizado al activar
+    smoothingRelax: 0.4   // Suavizado al relajar
   }
 };
 
@@ -210,13 +225,24 @@ export function HandTracker() {
                 }
 
                 // Fist
+                const cfgFist = VISUAL_CONFIG.fist;
                 const fingerTips = [8, 12, 16, 20];
                 let avgFingerDist = 0;
-                fingerTips.forEach(idx => {
-                    avgFingerDist += Math.sqrt(Math.pow(controlHand[idx].x - wrist.x, 2) + Math.pow(controlHand[idx].y - wrist.y, 2));
-                });
-                let fist = Math.max(0, Math.min(1, 1 - (avgFingerDist / 4 / (distToMCP || 0.001) - 0.6)));
-                fistStateRef.current += (fist - fistStateRef.current) * 0.15;
+                
+                // Solo detectar si la mano está en el centro
+                const isFistInZone = controlHand[9].x > cfgFist.minX && controlHand[9].x < cfgFist.maxX && 
+                                    controlHand[9].y > cfgFist.minY && controlHand[9].y < cfgFist.maxY;
+
+                if (isFistInZone) {
+                    fingerTips.forEach(idx => {
+                        avgFingerDist += Math.sqrt(Math.pow(controlHand[idx].x - wrist.x, 2) + Math.pow(controlHand[idx].y - wrist.y, 2));
+                    });
+                    let fist = Math.max(0, Math.min(1, 1 - (avgFingerDist / 4 / (distToMCP || 0.001) - 0.6)));
+                    fistStateRef.current += (fist - fistStateRef.current) * cfgFist.smoothing;
+                } else {
+                    // Si sale de la zona, relajamos el puño suavemente
+                    fistStateRef.current *= 0.9;
+                }
             }
         } else {
             setIsDetected(false);
@@ -230,19 +256,22 @@ export function HandTracker() {
         // Rostro
         if (results.faceLandmarks) {
             const landmarks = results.faceLandmarks;
+            const cfgFace = VISUAL_CONFIG.face;
             const dist = (i1, i2) => Math.sqrt(Math.pow(landmarks[i1].x - landmarks[i2].x, 2) + Math.pow(landmarks[i1].y - landmarks[i2].y, 2));
             
+            // Detección Sonrisa
             const mouthWidth = dist(61, 291);
-            const faceWidth = dist(234, 454);
-            let smile = Math.max(0, Math.min(1, (mouthWidth / (faceWidth || 0.1) - 0.42) / 0.10));
+            const faceWidth = dist(234, 454); // Distancia entre sienes para normalizar
+            let smile = Math.max(0, Math.min(1, (mouthWidth / (faceWidth || 0.1) - cfgFace.smileLower) / (cfgFace.smileUpper - cfgFace.smileLower)));
 
-            const faceHeight = dist(10, 152);
+            // Detección Cejas
+            const faceHeight = dist(10, 152); // Altura total cara
             const avgBrowHeight = (dist(65, 159) + dist(295, 386)) / 2;
-            let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - 0.08) / 0.04));
+            let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - cfgFace.eyebrowsLower) / (cfgFace.eyebrowsUpper - cfgFace.eyebrowsLower)));
 
             faceStateRef.current = {
-                smile: faceStateRef.current.smile + (smile - faceStateRef.current.smile) * (smile > faceStateRef.current.smile ? 0.1 : 0.4),
-                eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? 0.1 : 0.4)
+                smile: faceStateRef.current.smile + (smile - faceStateRef.current.smile) * (smile > faceStateRef.current.smile ? cfgFace.smoothingActive : cfgFace.smoothingRelax),
+                eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? cfgFace.smoothingActive : cfgFace.smoothingRelax)
             };
         }
     });
