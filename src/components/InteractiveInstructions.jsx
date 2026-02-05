@@ -1,36 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useHandControl } from './HandContext';
 
+// --- CONFIGURACIÓN DE UMBRALES PARA EL TUTORIAL ---
+const INSTRUCTION_CONFIG = {
+  swipe: 0.05,     // Sensibilidad del swipe
+  fist: 0.7,      // Cierre de puño
+  eyebrows: 0.3,  // Levantar cejas
+  smile: 0.3,     // Sonreír
+  pinch: 0.4      // Unir dedos
+};
+
 const GESTURES = [
   {
     id: 'swipe',
     text: 'Desliza tu mano hacia un lado u otro',
     icon: '« 🖐️ »',
-    check: (state) => Math.abs(state.rotationImpulseRef.current) > 0.05
+    check: (state) => Math.abs(state.rotationImpulseRef.current) > INSTRUCTION_CONFIG.swipe
   },
   {
     id: 'fist',
     text: 'Cierra el puño para encoger la flor',
     icon: '✊',
-    check: (state) => state.fistStateRef.current > 0.7
+    check: (state) => state.fistStateRef.current > INSTRUCTION_CONFIG.fist
   },
   {
     id: 'eyebrows',
     text: 'Levanta las cejas para expandir la luz',
     icon: '🤨',
-    check: (state) => state.faceStateRef.current.eyebrows > 0.3
+    check: (state) => state.faceStateRef.current.eyebrows > INSTRUCTION_CONFIG.eyebrows
   },
   {
     id: 'smile',
     text: 'Sonríe para cambiar el color',
     icon: '😊',
-    check: (state) => state.faceStateRef.current.smile > 0.3
+    check: (state) => state.faceStateRef.current.smile > INSTRUCTION_CONFIG.smile
   },
   {
     id: 'pinch',
     text: 'Une tus dedos para un brillo íntimo',
     icon: '👌',
-    check: (state) => state.pinchStateRef.current > 0.7
+    check: (state) => state.pinchStateRef.current > INSTRUCTION_CONFIG.pinch
   }
 ];
 
