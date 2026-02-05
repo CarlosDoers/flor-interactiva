@@ -38,8 +38,8 @@ const VISUAL_CONFIG = {
   face: {
     smileLower: 0.42,    // Humbral base sonrisa
     smileUpper: 0.52,    // Humbral tope sonrisa
-    eyebrowsLower: 0.09, // Humbral base cejas (Aumentado para evitar falsos positivos)
-    eyebrowsUpper: 0.13, // Humbral tope cejas
+    eyebrowsLower: 0.09, // Humbral base cejas (Aumentado para evitar falsos positivos) Si ves que se activa solo, sube este valor (ej: 0.10)
+    eyebrowsUpper: 0.12, // Humbral tope cejas - Si te cuesta mucho activarlo al máximo, baja este valor (ej: 0.11).
     smoothingActive: 0.1, // Suavizado al activar
     smoothingRelax: 0.4   // Suavizado al relajar
   }
