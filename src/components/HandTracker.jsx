@@ -34,6 +34,12 @@ const VISUAL_CONFIG = {
     targetY: 0.5,        // Centro vertical de la flor (0.5 = centro pantalla)
     touchRadius: 0.15,   // Cuán cerca hay que estar para activar (0.1 - 0.5 típico)
     smoothing: 0.15      // Suavizado de la interacción
+  },
+  swipe: {
+    threshold: 0.8,      // Velocidad mínima para activar (antes 0.5)
+    intensity: 1.0,      // Fuerza del empujón (antes 1.5)
+    minX: 0.4,           // Límite izquierdo zona central (40%)
+    maxX: 0.6            // Límite derecho zona central (60%)
   }
 };
 
@@ -301,12 +307,11 @@ export function HandTracker() {
                     const dx = currentX - lastPalmXRef.current;
                     const vx = dx / dt; 
                     
-                    // Solo detectar swipe si la mano está en la zona central (0.3 a 0.7)
-                    // para evitar activaciones accidentales al entrar/salir de cámara
-                    const isInCentralZone = currentX > 0.3 && currentX < 0.7;
+                    const cfgSwipe = VISUAL_CONFIG.swipe;
+                    const isInCentralZone = currentX > cfgSwipe.minX && currentX < cfgSwipe.maxX;
 
-                    if (Math.abs(vx) > 0.5 && isInCentralZone) { 
-                        rotationImpulseRef.current = vx * 1.5; 
+                    if (Math.abs(vx) > cfgSwipe.threshold && isInCentralZone) { 
+                        rotationImpulseRef.current = vx * cfgSwipe.intensity; 
                     }
                     
                     lastPalmXRef.current = currentX;
