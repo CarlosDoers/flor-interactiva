@@ -20,9 +20,13 @@ export function Flower(props) {
   const targetMeshes = useRef([]); // Optimización: Cache de meshes
   
   // Consumir datos de la mano Y de la cara
-  const { faceStateRef, fistStateRef } = useHandControl();
+  const { faceStateRef, fistStateRef, rotationImpulseRef } = useHandControl();
 
   const tempColor = useMemo(() => new THREE.Color(), []);
+  
+  // Refs para física de rotación (Swipe)
+  const extraVelocityRef = useRef(0);
+  const directionRef = useRef(1); // 1 = Derecha, -1 = Izquierda
 
   // Preparamos la escena UNA sola vez con materiales mejorados (Brillo/Metal)
   const enhancedScene = useMemo(() => {
@@ -71,17 +75,31 @@ export function Flower(props) {
     });
   }, [enhancedScene]);
 
-  // Mantenemos el movimiento de rotación existente, ahora reactivo al gesto de las cejas
+  // Mantenemos el movimiento de rotación existente, ahora reactivo al gesto de las cejas y swipes
   useFrame((state, delta) => {
     const { eyebrows } = faceStateRef.current; 
     const fistState = fistStateRef.current;
+    const impulse = rotationImpulseRef.current;
     
     if (modelRef.current) {
-      // 1. Dinámica de Movimiento (Cejas para crecer, Puño para encoger)
-      const speed = FLOWER_CONFIG.baseRotationSpeed + (eyebrows * FLOWER_CONFIG.rotationBoost);
-      modelRef.current.rotation.y += delta * speed;
+      // 1. Dinámica de Movimiento (Swipe/Giro Manual)
+      if (Math.abs(impulse) > 0.05) {
+        // Invertimos el signo para que la dirección sea intuitiva al espejo
+        directionRef.current = Math.sign(impulse) * -1;
+        extraVelocityRef.current += Math.abs(impulse);
+        rotationImpulseRef.current = 0; // Consumimos el impulso
+      }
 
-      // Escala: Base + Cejas (crece) - Puño (encoge)
+      // Decaimiento de la velocidad extra (Inercia)
+      extraVelocityRef.current *= 0.95;
+
+      // Velocidad base + impulso * dirección
+      const baseSpeed = FLOWER_CONFIG.baseRotationSpeed + (eyebrows * FLOWER_CONFIG.rotationBoost);
+      const currentVelocity = (baseSpeed + extraVelocityRef.current) * directionRef.current;
+      
+      modelRef.current.rotation.y += delta * currentVelocity;
+
+      // 2. Escala: Base + Cejas (crece) - Puño (encoge)
       const growth = eyebrows * FLOWER_CONFIG.maxGrowth;
       const shrink = fistState * 0.4; // Factor de encogimiento
       const targetScale = Math.max(0.5, FLOWER_CONFIG.baseScale + growth - shrink);

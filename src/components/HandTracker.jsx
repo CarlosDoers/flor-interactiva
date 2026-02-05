@@ -92,9 +92,13 @@ function drawNeonHand(ctx, landmarks, connections) {
 export function HandTracker() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { handStateRef, faceStateRef, fistStateRef, pinchStateRef, leftHandHeightRef, rightHandHeightRef, setIsDetected } = useHandControl();
+  const { handStateRef, faceStateRef, fistStateRef, rotationImpulseRef, pinchStateRef, leftHandHeightRef, rightHandHeightRef, setIsDetected } = useHandControl();
   const holisticRef = useRef(null);
   const cameraRef = useRef(null);
+  
+  // Refs locales para detectar Swipe (Velocidad horizontal)
+  const lastPalmXRef = useRef(0.5);
+  const lastPalmTimeRef = useRef(performance.now());
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -287,6 +291,25 @@ export function HandTracker() {
                 
                 const currentPinch = pinchStateRef.current;
                 pinchStateRef.current = currentPinch + (pinch - currentPinch) * 0.2;
+
+                // --- DETECCIÓN DE SWIPE (Impulso de giro) ---
+                const currentX = controlHand[9].x;
+                const currentTime = performance.now();
+                const dt = (currentTime - lastPalmTimeRef.current) / 1000;
+                
+                if (dt > 0.01) {
+                    const dx = currentX - lastPalmXRef.current;
+                    const vx = dx / dt; 
+                    
+                    // Detectar movimiento rápido (swipe)
+                    if (Math.abs(vx) > 0.7) { 
+                        // vx es positivo si va a la derecha, negativo a la izquierda
+                        rotationImpulseRef.current = vx * 4.0; 
+                    }
+                    
+                    lastPalmXRef.current = currentX;
+                    lastPalmTimeRef.current = currentTime;
+                }
 
                 // --- DETECCIÓN DE PUÑO (Fist) ---
                 const fingerTips = [8, 12, 16, 20]; // Puntas de los dedos (menos pulgar)
