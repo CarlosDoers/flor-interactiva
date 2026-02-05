@@ -91,9 +91,9 @@ export function Flower(props) {
       }
 
       // Decaimiento de la velocidad extra (Inercia)
-      extraVelocityRef.current *= 0.95;
+      extraVelocityRef.current *= 0.97; // Un poco más de inercia para que sea fluido
 
-      // Velocidad base + impulso * dirección
+      // Velocidad base + impulso. Todo multiplicado por la dirección actual
       const baseSpeed = FLOWER_CONFIG.baseRotationSpeed + (eyebrows * FLOWER_CONFIG.rotationBoost);
       const currentVelocity = (baseSpeed + extraVelocityRef.current) * directionRef.current;
       

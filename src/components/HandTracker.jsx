@@ -301,10 +301,12 @@ export function HandTracker() {
                     const dx = currentX - lastPalmXRef.current;
                     const vx = dx / dt; 
                     
-                    // Detectar movimiento rápido (swipe)
-                    if (Math.abs(vx) > 0.7) { 
-                        // vx es positivo si va a la derecha, negativo a la izquierda
-                        rotationImpulseRef.current = vx * 4.0; 
+                    // Solo detectar swipe si la mano está en la zona central (0.3 a 0.7)
+                    // para evitar activaciones accidentales al entrar/salir de cámara
+                    const isInCentralZone = currentX > 0.3 && currentX < 0.7;
+
+                    if (Math.abs(vx) > 0.5 && isInCentralZone) { 
+                        rotationImpulseRef.current = vx * 1.5; 
                     }
                     
                     lastPalmXRef.current = currentX;
