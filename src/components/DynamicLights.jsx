@@ -10,9 +10,9 @@ const LIGHT_CONFIG = {
     position: [-1.5, 1, 0],    // MUY cerca de la flor (en el espacio local del grupo)
     baseColor: '#8dff30',      // Naranja suave (mano abajo)
     activeColor: '#00cb00',    // ROJO PURO (mano arriba) - Cambio dramático
-    baseIntensity: 1.5,        // Subido a 1.5
-    maxIntensity: 8,           // Subido a 8
-    distance: 10,              // Radio un poco más amplio
+    baseIntensity: 5,          // Subido de 1.5 a 5
+    maxIntensity: 50,          // Subido de 8 a 50
+    distance: 15,              // Radio un poco más amplio
     decay: 2,                  // Caída de la luz
   },
   // Luz Derecha (controlada por mano derecha)
@@ -20,9 +20,9 @@ const LIGHT_CONFIG = {
     position: [1.5, 1, 0],     // MUY cerca de la flor (en el espacio local del grupo)
     baseColor: '#b0aaff',      // Morado suave (mano abajo)
     activeColor: '#ffd900',    // MAGENTA NEÓN (mano arriba) - Cambio dramático
-    baseIntensity: 2,          // Reducido de 4 a 2
-    maxIntensity: 12,          // Reducido de 20 a 12
-    distance: 10,              // Distancia de alcance de la luz
+    baseIntensity: 5,          // Subido de 2 a 5
+    maxIntensity: 80,          // Subido de 12 a 80
+    distance: 15,              // Distancia de alcance de la luz
     decay: 2,                  // Caída de la luz
   },
   // LUZ DE GESTOS FACIALES (Efecto dramático de teatro)

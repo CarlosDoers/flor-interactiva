@@ -4,7 +4,7 @@ import { useHandControl } from './HandContext';
 // --- CONFIGURACIÓN DE UMBRALES PARA EL TUTORIAL ---
 const INSTRUCTION_CONFIG = {
   swipe: 0.05,     // Sensibilidad del swipe
-  fist: 0.7,      // Cierre de puño
+  fist: 0.5,      // Cierre de puño
   eyebrows: 0.3,  // Levantar cejas
   smile: 0.3,     // Sonreír
   pinch: 0.4      // Unir dedos
@@ -19,13 +19,13 @@ const GESTURES = [
   },
   {
     id: 'fist',
-    text: 'Cierra el puño para encoger la flor',
+    text: 'Cierra y abre la mano',
     icon: '✊',
     check: (state) => state.fistStateRef.current > INSTRUCTION_CONFIG.fist
   },
   {
     id: 'eyebrows',
-    text: 'Levanta las cejas para expandir la luz',
+    text: 'Coge aire y levanta las cejas',
     icon: '🤨',
     check: (state) => state.faceStateRef.current.eyebrows > INSTRUCTION_CONFIG.eyebrows
   },
