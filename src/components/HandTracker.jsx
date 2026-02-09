@@ -33,7 +33,7 @@ const VISUAL_CONFIG = {
   },
   swipe: {
     threshold: 0.35,      // Reducido de 0.5 para compensar el smoothing
-    intensity: 1.6,       // Aumentado de 1.1 para dar más impulso
+    intensity: 1.3,       // Aumentado de 1.1 para dar más impulso
     minX: 0.25,           // Ampliado de 0.4 para dar más margen de detección
     maxX: 0.75            // Ampliado de 0.6 para dar más margen de detección
   },
