@@ -32,10 +32,10 @@ const VISUAL_CONFIG = {
     smoothing: 0.15
   },
   swipe: {
-    threshold: 0.5,
-    intensity: 1.1,
-    minX: 0.4,
-    maxX: 0.6
+    threshold: 0.35,      // Reducido de 0.5 para compensar el smoothing
+    intensity: 1.6,       // Aumentado de 1.1 para dar más impulso
+    minX: 0.25,           // Ampliado de 0.4 para dar más margen de detección
+    maxX: 0.75            // Ampliado de 0.6 para dar más margen de detección
   },
   fist: {
     minX: 0.25,           // Rango horizontal (30%)
@@ -264,15 +264,23 @@ export function HandTracker() {
                 let pinch = Math.max(0, Math.min(1, 1 - (pinchDist / (distToMCP || 0.001)) / 0.35));
                 pinchStateRef.current += (pinch - pinchStateRef.current) * 0.2;
 
-                // Swipe
+                // Swipe (Detección de velocidad lateral)
                 const currentX = controlHand[9].x;
                 const currentTime = performance.now();
                 const dt = (currentTime - lastPalmTimeRef.current) / 1000;
+                
+                // Si ha pasado más de 100ms, es una nueva detección o un salto
+                // No calculamos velocidad el primer frame para evitar "swipes fantasmas"
+                const isNewDetection = dt > 0.1;
+
                 if (dt > 0.01) {
-                    const vx = (currentX - lastPalmXRef.current) / dt;
-                    const cfgSwipe = VISUAL_CONFIG.swipe;
-                    if (Math.abs(vx) > cfgSwipe.threshold && currentX > cfgSwipe.minX && currentX < cfgSwipe.maxX) {
-                        rotationImpulseRef.current = vx * cfgSwipe.intensity;
+                    if (!isNewDetection) {
+                      const vx = (currentX - lastPalmXRef.current) / dt;
+                      const cfgSwipe = VISUAL_CONFIG.swipe;
+                      // Verificamos umbral de velocidad y que la mano esté en la zona central
+                      if (Math.abs(vx) > cfgSwipe.threshold && currentX > cfgSwipe.minX && currentX < cfgSwipe.maxX) {
+                          rotationImpulseRef.current = vx * cfgSwipe.intensity;
+                      }
                     }
                     lastPalmXRef.current = currentX;
                     lastPalmTimeRef.current = currentTime;
