@@ -321,20 +321,34 @@ export function HandTracker() {
             const cfgFace = VISUAL_CONFIG.face;
             const dist = (i1, i2) => Math.sqrt(Math.pow(landmarks[i1].x - landmarks[i2].x, 2) + Math.pow(landmarks[i1].y - landmarks[i2].y, 2));
             
-            // Detección Sonrisa
-            const mouthWidth = dist(61, 291);
-            const faceWidth = dist(234, 454); // Distancia entre sienes para normalizar
-            let smile = Math.max(0, Math.min(1, (mouthWidth / (faceWidth || 0.1) - cfgFace.smileLower) / (cfgFace.smileUpper - cfgFace.smileLower)));
+            // --- VERIFICACIÓN DE VISIBILIDAD (Dentro del recuadro de instrucciones) ---
+            // Usamos la punta de la nariz (Landmark 1) para centrar la detección
+            const nose = landmarks[1];
+            // Estos rangos coinciden aproximadamente con lo que se ve en el canvas de instrucciones
+            const isFaceVisible = nose.x > 0.25 && nose.x < 0.75 && nose.y > 0.3 && nose.y < 0.7;
 
-            // Detección Cejas
-            const faceHeight = dist(10, 152); // Altura total cara
-            const avgBrowHeight = (dist(65, 159) + dist(295, 386)) / 2;
-            let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - cfgFace.eyebrowsLower) / (cfgFace.eyebrowsUpper - cfgFace.eyebrowsLower)));
+            if (isFaceVisible) {
+                // Detección Sonrisa
+                const mouthWidth = dist(61, 291);
+                const faceWidth = dist(234, 454); // Distancia entre sienes para normalizar
+                let smile = Math.max(0, Math.min(1, (mouthWidth / (faceWidth || 0.1) - cfgFace.smileLower) / (cfgFace.smileUpper - cfgFace.smileLower)));
 
-            faceStateRef.current = {
-                smile: faceStateRef.current.smile + (smile - faceStateRef.current.smile) * (smile > faceStateRef.current.smile ? cfgFace.smoothingActive : cfgFace.smoothingRelax),
-                eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? cfgFace.smoothingActive : cfgFace.smoothingRelax)
-            };
+                // Detección Cejas
+                const faceHeight = dist(10, 152); // Altura total cara
+                const avgBrowHeight = (dist(65, 159) + dist(295, 386)) / 2;
+                let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - cfgFace.eyebrowsLower) / (cfgFace.eyebrowsUpper - cfgFace.eyebrowsLower)));
+
+                faceStateRef.current = {
+                    smile: faceStateRef.current.smile + (smile - faceStateRef.current.smile) * (smile > faceStateRef.current.smile ? cfgFace.smoothingActive : cfgFace.smoothingRelax),
+                    eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? cfgFace.smoothingActive : cfgFace.smoothingRelax)
+                };
+            } else {
+                // Si el rostro se sale del cuadro, relajamos los gestos suavemente a 0
+                faceStateRef.current = {
+                    smile: faceStateRef.current.smile * 0.9,
+                    eyebrows: faceStateRef.current.eyebrows * 0.9
+                };
+            }
         }
     });
 
