@@ -5,6 +5,15 @@ import { useHandControl } from './HandContext';
 
 // --- CONFIGURACIÓN VISUAL ---
 const VISUAL_CONFIG = {
+  // Configuración de detección MediaPipe
+  detection: {
+    modelComplexity: 1,           // 0=rápido, 1=preciso (mejor detección)
+    minDetectionConfidence: 0.4,  // Más sensible a detecciones iniciales
+    minTrackingConfidence: 0.4,   // Mantiene tracking con menos confianza
+    cameraWidth: 1280,            // Resolución HD para mejor detección
+    cameraHeight: 720,
+    landmarkSmoothing: 0.3        // Factor de suavizado de landmarks (0-1)
+  },
   hands: {
     color: '#00ffee',
     coreColor: '#ffffff',
@@ -44,6 +53,38 @@ const VISUAL_CONFIG = {
     smoothingRelax: 0.4   // Suavizado al relajar
   }
 };
+
+// Clase para suavizar landmarks y reducir jitter
+class LandmarkSmoother {
+  constructor(smoothingFactor = 0.3) {
+    this.history = null;
+    this.alpha = smoothingFactor;
+  }
+  
+  smooth(landmarks) {
+    if (!landmarks) {
+      this.history = null;
+      return null;
+    }
+    if (!this.history) {
+      this.history = landmarks.map(l => ({ x: l.x, y: l.y, z: l.z || 0 }));
+      return landmarks;
+    }
+    const smoothed = landmarks.map((l, i) => {
+      const h = this.history[i];
+      const newX = h.x + (l.x - h.x) * this.alpha;
+      const newY = h.y + (l.y - h.y) * this.alpha;
+      const newZ = l.z !== undefined ? h.z + (l.z - h.z) * this.alpha : l.z;
+      this.history[i] = { x: newX, y: newY, z: newZ || 0 };
+      return { x: newX, y: newY, z: newZ };
+    });
+    return smoothed;
+  }
+  
+  reset() {
+    this.history = null;
+  }
+}
 
 // Función auxiliar para dibujo estilo Neón/Holográfico
 function drawNeonHand(ctx, landmarks, connections) {
@@ -109,15 +150,28 @@ export function HandTracker() {
     });
     holisticRef.current = holistic;
     
+    const cfgDetection = VISUAL_CONFIG.detection;
     holistic.setOptions({
-      modelComplexity: 0,
+      modelComplexity: cfgDetection.modelComplexity,
       smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
+      minDetectionConfidence: cfgDetection.minDetectionConfidence,
+      minTrackingConfidence: cfgDetection.minTrackingConfidence,
       refineFaceLandmarks: true
     });
+    
+    // Smoothers para estabilizar landmarks
+    const leftHandSmoother = new LandmarkSmoother(cfgDetection.landmarkSmoothing);
+    const rightHandSmoother = new LandmarkSmoother(cfgDetection.landmarkSmoothing);
+    const faceSmoother = new LandmarkSmoother(cfgDetection.landmarkSmoothing);
 
-    holistic.onResults((results) => {
+    holistic.onResults((rawResults) => {
+        // Aplicar smoothing a los landmarks
+        const results = {
+          ...rawResults,
+          leftHandLandmarks: leftHandSmoother.smooth(rawResults.leftHandLandmarks),
+          rightHandLandmarks: rightHandSmoother.smooth(rawResults.rightHandLandmarks),
+          faceLandmarks: faceSmoother.smooth(rawResults.faceLandmarks)
+        };
         // --- 1. RENDERIZACIÓN MANOS (CANVAS PRINCIPAL) ---
         const canvas = canvasRef.current;
         if (canvas) {
@@ -282,7 +336,8 @@ export function HandTracker() {
           try { await holisticRef.current.send({ image: videoRef.current }); } catch (e) {}
         }
       },
-      width: 640, height: 480
+      width: cfgDetection.cameraWidth,
+      height: cfgDetection.cameraHeight
     });
     camera.start();
 
