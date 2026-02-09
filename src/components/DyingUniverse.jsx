@@ -3,12 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // --- CONFIGURACIÓN DE RENDIMIENTO ---
-// Ajusta estos valores para equilibrar calidad visual y rendimiento
 const SHADER_CONFIG = {
-  NUM_STARS: 12,        // Cantidad de estrellas (Impacta mucho al rendimiento)
-  NUM_BOUNCES: 3,       // Rebotes en la animación (Impacto medio)
-  FLOOR_REFLECT: true, // Reflejos en el suelo (Costoso: true = Menos FPS)
-  STAR_SIZE: 0.02       // Tamaño base de las estrellas
+  NUM_STARS: 12,        
+  NUM_BOUNCES: 3,       
+  FLOOR_REFLECT: true, 
+  STAR_SIZE: 0.02       
 };
 
 const vertexShader = `
@@ -20,203 +19,130 @@ const vertexShader = `
 `;
 
 const fragmentShader = `
-  precision highp float;
+  precision mediump float;
   varying vec2 vUv;
   uniform float iTime;
   uniform vec2 iResolution;
 
-  // "Dying Universe" by Martijn Steinrucken aka BigWings - 2015
-  // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-
-  // --- CONFIG INYECTADA ---
+  // Optimized "Dying Universe"
   #define NUM_STARS ${SHADER_CONFIG.NUM_STARS}
   #define NUM_BOUNCES ${SHADER_CONFIG.NUM_BOUNCES}
   ${SHADER_CONFIG.FLOOR_REFLECT ? '#define FLOOR_REFLECT' : '// #define FLOOR_REFLECT'}
   
-  const vec4 COOLCOLOR_BASE = vec4(1.,.5,0.,1.);
-  const vec4 HOTCOLOR_BASE = vec4(0.,0.1,1.,1.);
+  const vec3 up = vec3(0., 1., 0.);
+  const float pi = 3.14159;
   const float STARSIZE = ${SHADER_CONFIG.STAR_SIZE};
   
-  #define saturate(x) clamp(x,0.,1.)
-  #define NUM_ARCS (NUM_BOUNCES + 1)
+  #define saturate(x) clamp(x, 0., 1.)
 
-  // Optimización: Usar dot directamente para distancia al cuadrado
-  float DistSqr(vec3 a, vec3 b) { vec3 D=a-b; return dot(D, D); } 
-
-  const vec3 up = vec3(0.,1.,0.);
-  const float pi = 3.14159265;
-  float time;
-
-  struct ray {
-      vec3 o;
-      vec3 d;
-  };
-
-  struct camera {
-      vec3 p;
-      vec3 forward;
-      vec3 left;
-      vec3 up;
-      vec3 center;
-      vec3 i;
-      ray ray;
-      vec3 lookAt;
-      float zoom;
-  };
-  camera cam;
-
-  void CameraSetup(vec2 uv, vec3 position, vec3 lookAt, float zoom) {
-      cam.p = position;
-      cam.lookAt = lookAt;
-      cam.forward = normalize(cam.lookAt-cam.p);
-      cam.left = normalize(cross(up, cam.forward));
-      cam.up = cross(cam.forward, cam.left);
-      cam.zoom = zoom;
-      
-      cam.center = cam.p+cam.forward*cam.zoom;
-      cam.i = cam.center+cam.left*uv.x+cam.up*uv.y;
-      
-      cam.ray.o = cam.p;
-      cam.ray.d = normalize(cam.i-cam.p);
-  }
-
-  // Hash sinusoide más rápido (estándar GLSL)
+  // Hash más optimizado
   float Hash11(float p) {
-      return fract(sin(p * 127.1) * 43758.545);
+      return fract(sin(p * 12.9898) * 43758.5453);
   }
 
   vec4 Hash41(float p) {
-      return fract(sin(vec4(p, p + 1.0, p + 2.0, p + 3.0) * vec4(127.1, 311.7, 74.7, 983.1)) * 43758.545) * 2.0 - 1.0;
+      return fract(sin(vec4(p, p + 1.0, p + 2.0, p + 3.0) * 12.9898) * 43758.5453) * 2.0 - 1.0;
   }
 
-  float PeriodicPulse(float x, float p) {
-    float c = cos(x + sin(x));
-    return pow(c * 0.5 + 0.5, p);
-  }
-
-  vec3 ClosestPoint(ray r, vec3 p) {
-      return r.o + max(0., dot(p-r.o, r.d))*r.d;
-  }
-
-  // Animación de rebote con desenrollado opcional o simplificación
+  // Simplificación de Bounce para evitar bucles dinámicos
   float BounceNorm(float t, float decay) {
-      float height = 1.0;
-      float halfDuration = 0.5;
-      float h[4]; h[0] = 1.0; // Hardcoded para 3 bounces
-      float hd[4]; hd[0] = 1.0;
+      float h1 = decay;
+      float h2 = h1 * decay;
+      float h3 = h2 * decay;
       
-      // Simulado para evitar loops dinámicos pesados
-      float currH = 1.0;
-      for(int i=1; i<=NUM_BOUNCES; i++) {
-          currH *= decay;
-          h[i] = currH;
-          hd[i] = sqrt(currH);
-          halfDuration += hd[i];
-      }
+      float hd1 = sqrt(h1);
+      float hd2 = sqrt(h2);
+      float hd3 = sqrt(h3);
       
+      float halfDuration = 0.5 + hd1 + hd2 + hd3;
       t *= halfDuration * 2.0;
+      
       float y = 1.0 - t * t;
       
-      float accumT = 0.0;
-      for(int i=1; i<=NUM_BOUNCES; i++) {
-          t -= (hd[i-1] + hd[i]);
-          y = max(y, h[i] - t * t);
-      }
+      t -= (1.0 + hd1);
+      y = max(y, h1 - t * t);
+      
+      t -= (hd1 + hd2);
+      y = max(y, h2 - t * t);
+      
+      t -= (hd2 + hd3);
+      y = max(y, h3 - t * t);
+      
       return saturate(y);
   }
 
-  vec3 IntersectPlane(ray r) {
-      float t = -r.o.y / r.d.y;
-      return r.o + max(0.0, t) * r.d;
-  }
+  struct ray { vec3 o, d; };
 
-  vec4 COOLCOLOR, HOTCOLOR, MIDCOLOR;
-
-  // Calculamos la posición y color una sola vez por estrella
-  struct StarState {
-      vec3 pos;
-      vec4 col;
-      float fade;
-  };
-
-  StarState GetStar(float seed) {
-      vec4 noise = Hash41(seed);
-      float t = fract(time * 0.1 + seed) * 2.0;
-      
-      float fade = smoothstep(2.0, 0.5, t);
-      vec4 col = mix(COOLCOLOR, HOTCOLOR, fade);
-      float size = STARSIZE + seed * 0.03;
-      size *= fade;
-      
-      float b = BounceNorm(t, 0.4 + seed * 0.1) * 7.0;
-      b += size;
-      
-      vec3 sparkPos = vec3(noise.x * 10.0, b, noise.z * 10.0);
-      
-      StarState s;
-      s.pos = sparkPos;
-      s.col = col;
-      s.fade = fade;
-      return s;
+  vec3 ClosestPoint(ray r, vec3 p) {
+      return r.o + max(0., dot(p - r.o, r.d)) * r.d;
   }
 
   void main() {
       vec2 uv = (vUv - 0.5);
       uv.y *= iResolution.y / iResolution.x;
       
-      time = iTime * 0.4; // Ajuste de velocidad
-      
+      float time = iTime * 0.4;
       float t = time * pi * 0.1;
-      COOLCOLOR = vec4(sin(t), cos(t * 0.23), cos(t * 0.345), 1.0) * 0.5 + 0.5;
-      HOTCOLOR = vec4(sin(t * 2.0), cos(t * 0.66), cos(t * 0.345), 1.0) * 0.5 + 0.5;
       
-      float whiteFade = sin(time * 2.0) * 0.5 + 0.5;
-      HOTCOLOR = mix(HOTCOLOR, vec4(1.0), whiteFade);
-      MIDCOLOR = (HOTCOLOR + COOLCOLOR) * 0.5;
+      // Colores dinámicos
+      vec4 cool = vec4(sin(t), cos(t * 0.23), cos(t * 0.345), 1.0) * 0.5 + 0.5;
+      vec4 hot = vec4(sin(t * 2.0), cos(t * 0.66), cos(t * 0.345), 1.0) * 0.5 + 0.5;
+      hot = mix(hot, vec4(1.0), sin(time * 2.0) * 0.5 + 0.5);
+      vec4 mid = (hot + cool) * 0.5;
       
       float s = sin(t), c = cos(t);
       mat3 rot = mat3(c, 0, s, 0, 1, 0, -s, 0, c);
       
-      float camHeight = mix(3.5, 0.1, PeriodicPulse(time * 0.1, 2.0));
-      vec3 pos = vec3(0., camHeight, -10.) * rot * (1.0 + sin(time) * 0.3);
+      // Cámara simplificada
+      float pulse = cos(time * 0.1 + sin(time * 0.1)) * 0.5 + 0.5;
+      pulse *= pulse; // pow(..., 2.0)
+      float camHeight = mix(3.5, 0.1, pulse);
+      vec3 camPos = vec3(0., camHeight, -10.) * rot * (1.0 + sin(time) * 0.3);
       
-      CameraSetup(uv, pos, vec3(0.), 0.5);
+      vec3 lookAt = vec3(0.);
+      vec3 f = normalize(lookAt - camPos);
+      vec3 r = normalize(cross(up, f));
+      vec3 u = cross(f, r);
+      ray rayCam = ray(camPos, normalize(f * 0.5 + r * uv.x + u * uv.y));
       
       vec4 finalCol = vec4(0.0);
-      
-      // Renderizado simplificado: una sola pasada de estrellas
-      // Calculamos suelo y estrellas en un solo bucle si es posible
-      bool hitGround = cam.ray.d.y < 0.0;
-      vec3 groundPoint = vec3(0.0);
-      if(hitGround) groundPoint = IntersectPlane(cam.ray);
+      bool hitGround = rayCam.d.y < 0.0;
+      vec3 groundPoint = camPos + max(0.0, -camPos.y / rayCam.d.y) * rayCam.d;
 
-      for(int i=0; i<NUM_STARS; i++) {
-          StarState star = GetStar(Hash11(float(i)));
+      for(int i = 0; i < NUM_STARS; i++) {
+          float seed = Hash11(float(i));
+          vec4 noise = Hash41(seed);
+          float starT = fract(time * 0.1 + seed) * 2.0;
           
-          // 1. Contribución de la estrella (brillo en cámara)
-          vec3 closest = ClosestPoint(cam.ray, star.pos);
-          float distStar = DistSqr(closest, star.pos);
-          float size = (STARSIZE + Hash11(float(i)) * 0.03) * star.fade;
-          finalCol += star.col * (1.0 / (distStar / (size * size) + 0.001));
+          float fade = smoothstep(2.0, 0.5, starT);
+          float b = BounceNorm(starT, 0.4 + seed * 0.1) * 7.0;
+          
+          float size = (STARSIZE + seed * 0.03) * fade;
+          vec3 starPos = vec3(noise.x * 10.0, b + size, noise.z * 10.0);
+          vec4 starCol = mix(cool, hot, fade);
 
-          // 2. Contribución al suelo
+          // Contribución estrella
+          vec3 closest = ClosestPoint(rayCam, starPos);
+          vec3 dStar = closest - starPos;
+          float distStarSq = dot(dStar, dStar);
+          finalCol += starCol * (1.0 / (distStarSq / (size * size) + 0.001));
+
+          // Contribución suelo
           if(hitGround) {
-              vec3 L = star.pos - groundPoint;
-              float distL2 = dot(L, L);
-              float distL = sqrt(distL2);
-              vec3 Ln = L / distL;
+              vec3 L = starPos - groundPoint;
+              float dL2 = dot(L, L);
+              float dL = sqrt(dL2);
+              float light = saturate(L.y / dL) / (dL + 0.001);
               
-              float lambert = saturate(Ln.y);
-              float light = lambert / (distL + 0.001);
-              
-              vec4 groundCol = mix(COOLCOLOR, MIDCOLOR, star.fade);
+              vec4 groundCol = mix(cool, mid, fade);
               finalCol += groundCol * light * 0.05 * (sin(time) * 0.5 + 0.6);
               
               #ifdef FLOOR_REFLECT
-                  vec3 R = reflect(cam.ray.d, up);
-                  float spec = pow(saturate(dot(R, Ln)), 32.0); // Reducido de 400
-                  float fresnel = pow(1.0 - saturate(Ln.y), 5.0); // Reducido de 10
-                  finalCol += groundCol * (spec / (distL + 0.5)) * star.fade * fresnel * 0.2;
+                  vec3 R = reflect(rayCam.d, up);
+                  float spec = saturate(dot(R, L / dL));
+                  // spec = pow(spec, 32.0) -> x^32
+                  spec *= spec; spec *= spec; spec *= spec; spec *= spec; spec *= spec; 
+                  finalCol += groundCol * (spec / (dL + 0.5)) * fade * 0.04;
               #endif
           }
       }
