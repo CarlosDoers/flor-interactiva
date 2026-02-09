@@ -7,12 +7,12 @@ import { useHandControl } from './HandContext';
 const VISUAL_CONFIG = {
   // Configuración de detección MediaPipe
   detection: {
-    modelComplexity: 1,           // 0=rápido, 1=preciso (mejor detección)
-    minDetectionConfidence: 0.4,  // Más sensible a detecciones iniciales
-    minTrackingConfidence: 0.4,   // Mantiene tracking con menos confianza
-    cameraWidth: 1280,            // Resolución HD para mejor detección
-    cameraHeight: 720,
-    landmarkSmoothing: 0.3        // Factor de suavizado de landmarks (0-1)
+    modelComplexity: 1,           // 1=preciso (mantiene mejor el tracking)
+    minDetectionConfidence: 0.4,
+    minTrackingConfidence: 0.4,
+    cameraWidth: 960,             // Bajamos ligeramente de 1280 para ganar velocidad
+    cameraHeight: 540,
+    landmarkSmoothing: 0.75       // Aumentado (0.3 -> 0.75) para que sea MUCHO más responsivo
   },
   hands: {
     color: '#00ffee',
