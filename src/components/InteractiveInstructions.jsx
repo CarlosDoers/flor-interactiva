@@ -138,7 +138,7 @@ export function InteractiveInstructions() {
         .instruction-text {
           color: white;
           font-family: 'Inter', sans-serif;
-          font-size: 18px;
+          font-size: 26px;
           line-height: 1.4;
           font-weight: 300;
           letter-spacing: 0.3px;
