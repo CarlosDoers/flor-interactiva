@@ -135,6 +135,7 @@ export function HandTracker() {
     pinchStateRef, 
     leftHandHeightRef, 
     rightHandHeightRef, 
+    cursorRef,
     setIsDetected 
   } = useHandControl();
   const holisticRef = useRef(null);
@@ -240,6 +241,18 @@ export function HandTracker() {
             [leftHand, rightHand].forEach((hand, idx) => {
                 if (!hand) return;
                 const palm = hand[9];
+                
+                // Actualizar cursorRef con la posición de la mano dominante (o la última procesada)
+                // Invertimos X porque el video está en espejo
+                // Aplicamos un margen (zoom) para evitar los bordes distorsionados de la cámara ("ojo de pez")
+                const margin = 0.15; // 15% de margen a cada lado
+                const remap = (val, min, max) => Math.max(0, Math.min(1, (val - min) / (max - min)));
+
+                cursorRef.current = { 
+                    x: remap(1 - palm.x, margin, 1 - margin), 
+                    y: remap(palm.y, margin, 1 - margin) 
+                };
+
                 const dist = Math.sqrt(Math.pow(palm.x - cfg.targetX, 2) + Math.pow(palm.y - cfg.targetY, 2));
                 let touchFactor = Math.max(0, Math.min(1, 1 - (dist / cfg.touchRadius)));
                 if (touchFactor > maxTouchFactor) maxTouchFactor = touchFactor;
