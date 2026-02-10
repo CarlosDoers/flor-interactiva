@@ -230,7 +230,7 @@ function App() {
               </Caustics>
             </group>
           ) : (
-            <group position={[0, 0.5, 0]}>
+            <group position={[0, 0.3, 0]}>
                {/* Modo DOERS */}
                <LogoDoersModel scale={0.8} />
             </group>
