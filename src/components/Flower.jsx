@@ -75,9 +75,9 @@ export function Flower(props) {
     });
   }, [enhancedScene]);
 
-  // Mantenemos el movimiento de rotación existente, ahora reactivo al gesto de las cejas y swipes
+  // Mantenemos el movimiento de rotación existente, ahora reactivo a sonrisa y swipes
   useFrame((state, delta) => {
-    const { eyebrows } = faceStateRef.current; 
+    const { smile, wink } = faceStateRef.current; 
     const fistState = fistStateRef.current;
     const impulse = rotationImpulseRef.current;
     
@@ -93,23 +93,26 @@ export function Flower(props) {
       // Decaimiento de la velocidad extra (Inercia)
       extraVelocityRef.current *= 0.97; // Un poco más de inercia para que sea fluido
 
-      // Velocidad base + impulso. Todo multiplicado por la dirección actual
-      const baseSpeed = FLOWER_CONFIG.baseRotationSpeed + (eyebrows * FLOWER_CONFIG.rotationBoost);
+      // Velocidad base + sonrisa.
+      const baseSpeed = FLOWER_CONFIG.baseRotationSpeed + (smile * FLOWER_CONFIG.rotationBoost);
       const currentVelocity = (baseSpeed + extraVelocityRef.current) * directionRef.current;
       
       modelRef.current.rotation.y += delta * currentVelocity;
 
-      // 2. Escala: Base + Cejas (crece) - Puño (encoge)
-      const growth = eyebrows * FLOWER_CONFIG.maxGrowth;
+      // 2. Escala: Base + Sonrisa (crece) - Puño (encoge)
+      const growth = smile * FLOWER_CONFIG.maxGrowth;
       const shrink = fistState * 0.4; // Factor de encogimiento
       const targetScale = Math.max(0.5, FLOWER_CONFIG.baseScale + growth - shrink);
       
       modelRef.current.scale.set(targetScale, targetScale, targetScale);
 
-      // 2. Dinámica de Color (Cara y Gestos)
+      // 3. Dinámica de Color (El guiño pone la flor roja)
       targetMeshes.current.forEach((child) => {
           if (child.userData.originalColor) {
               tempColor.copy(child.userData.originalColor);
+              if (wink > 0.01) {
+                  tempColor.lerp(new THREE.Color('#ff0000'), wink);
+              }
               child.material.color.lerp(tempColor, 0.1);
           }
       });

@@ -11,6 +11,13 @@ import { HandTracker } from './components/HandTracker';
 import { InteractiveInstructions } from './components/InteractiveInstructions';
 import './App.css';
 
+// --- CONFIGURACIÓN ---
+const CONFIG = {
+  MODE_SWITCHER_SIZE: 240, // Tamaño del botón en píxeles
+  MODE_SWITCHER_TIME: 1500, // Tiempo de activación en ms
+};
+
+
 // Componente Wrapper para el botón de cambio de modo que usa el contexto
 function ModeSwitcherWrapper({ currentMode, setMode }) {
   const { cursorRef, isDetected } = useHandControl();
@@ -79,6 +86,11 @@ function ModeSwitcherWrapper({ currentMode, setMode }) {
     return () => cancelAnimationFrame(animationFrameId);
   }, [currentMode, setMode, isDetected]);
 
+  const radius = CONFIG.MODE_SWITCHER_SIZE / 2 - 6;
+  const circumference = 2 * Math.PI * radius;
+  const svgSize = CONFIG.MODE_SWITCHER_SIZE + 10;
+  const center = svgSize / 2;
+
   return (
     <>
       {/* Cursor visual para feedback */}
@@ -104,10 +116,10 @@ function ModeSwitcherWrapper({ currentMode, setMode }) {
         ref={buttonRef}
         style={{
           position: 'fixed',
-          top: '20px',
+          bottom: '20px', // Cambiado a la parte inferior
           right: '20px',
-          width: '140px',
-          height: '140px',
+          width: `${CONFIG.MODE_SWITCHER_SIZE}px`,
+          height: `${CONFIG.MODE_SWITCHER_SIZE}px`,
           borderRadius: '50%',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           backdropFilter: 'blur(10px)',
@@ -133,29 +145,30 @@ function ModeSwitcherWrapper({ currentMode, setMode }) {
       }} />
       
       {/* Circle progress fill */}
-       <svg width="150" height="150" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+       <svg width={svgSize} height={svgSize} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
           <circle
-            cx="75"
-            cy="75"
-            r="69"
+            cx={center}
+            cy={center}
+            r={radius}
             stroke="#00ffaa"
             strokeWidth="4"
             fill="transparent"
-            strokeDasharray={433.5}
-            strokeDashoffset={433.5 * (1 - hoverProgress)}
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - hoverProgress)}
             style={{ transition: 'stroke-dashoffset 0.1s linear' }}
           />
         </svg>
 
       <span style={{ 
         color: 'white', 
-        fontSize: '18px', 
+        fontSize: `${CONFIG.MODE_SWITCHER_SIZE / 8}px`, 
         fontWeight: 'bold',
         letterSpacing: '2px'
       }}>
         {currentMode === 'flower' ? 'DOERS' : 'FLOR'}
       </span>
     </div>
+
     </>
   );
 }

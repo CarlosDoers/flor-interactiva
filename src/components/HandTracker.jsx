@@ -47,8 +47,7 @@ const VISUAL_CONFIG = {
   face: {
     smileLower: 0.42,    // Humbral base sonrisa
     smileUpper: 0.52,    // Humbral tope sonrisa
-    eyebrowsLower: 0.08, // Humbral base cejas (Aumentado para evitar falsos positivos) Si ves que se activa solo, sube este valor (ej: 0.10)
-    eyebrowsUpper: 0.12, // Humbral tope cejas - Si te cuesta mucho activarlo al máximo, baja este valor (ej: 0.11).
+    winkThreshold: 0.12,  // Umbral para detectar guiño (ojo casi cerrado)
     smoothingActive: 0.1, // Suavizado al activar
     smoothingRelax: 0.4   // Suavizado al relajar
   }
@@ -334,11 +333,10 @@ export function HandTracker() {
             const cfgFace = VISUAL_CONFIG.face;
             const dist = (i1, i2) => Math.sqrt(Math.pow(landmarks[i1].x - landmarks[i2].x, 2) + Math.pow(landmarks[i1].y - landmarks[i2].y, 2));
             
-            // --- VERIFICACIÓN DE VISIBILIDAD (Dentro del recuadro de instrucciones) ---
-            // Usamos la punta de la nariz (Landmark 1) para centrar la detección
+            // --- VERIFICACIÓN DE VISIBILIDAD ---
             const nose = landmarks[1];
-            // Estos rangos coinciden aproximadamente con lo que se ve en el canvas de instrucciones
-            const isFaceVisible = nose.x > 0.25 && nose.x < 0.75 && nose.y > 0.3 && nose.y < 0.7;
+            // Ampliamos el rango de visibilidad para que no se corte tan fácil
+            const isFaceVisible = nose.x > 0.15 && nose.x < 0.85 && nose.y > 0.2 && nose.y < 0.8;
 
             if (isFaceVisible) {
                 // Detección Sonrisa
@@ -346,20 +344,42 @@ export function HandTracker() {
                 const faceWidth = dist(234, 454); // Distancia entre sienes para normalizar
                 let smile = Math.max(0, Math.min(1, (mouthWidth / (faceWidth || 0.1) - cfgFace.smileLower) / (cfgFace.smileUpper - cfgFace.smileLower)));
 
-                // Detección Cejas
-                const faceHeight = dist(10, 152); // Altura total cara
+                // Detección Cejas (Mantenida internamente pero ignorada por usuario)
+                const faceHeight = dist(10, 152); 
                 const avgBrowHeight = (dist(65, 159) + dist(295, 386)) / 2;
-                let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - cfgFace.eyebrowsLower) / (cfgFace.eyebrowsUpper - cfgFace.eyebrowsLower)));
+                let eyebrows = Math.max(0, Math.min(1, (avgBrowHeight / (faceHeight || 0.1) - 0.08) / 0.04));
+
+                // Detección Guiño (Ojo izquierdo o derecho cerrado)
+                // Usamos más landmarks para un EAR (Eye Aspect Ratio) más robusto
+                const leftEyeVert1 = dist(160, 144);  // Vertical izquierdo 1
+                const leftEyeVert2 = dist(158, 153);  // Vertical izquierdo 2
+                const leftEyeHoriz = dist(33, 133);   // Horizontal izquierdo
+                const rightEyeVert1 = dist(387, 373); // Vertical derecho 1
+                const rightEyeVert2 = dist(385, 380); // Vertical derecho 2
+                const rightEyeHoriz = dist(362, 263); // Horizontal derecho
+
+                // Eye Aspect Ratio (EAR): promedio vertical / horizontal
+                const leftEAR = (leftEyeVert1 + leftEyeVert2) / (2.0 * (leftEyeHoriz || 0.001));
+                const rightEAR = (rightEyeVert1 + rightEyeVert2) / (2.0 * (rightEyeHoriz || 0.001));
+
+                let wink = 0;
+                const earDiff = Math.abs(leftEAR - rightEAR);
+                // Calibrado: ojo guiñado ~0.18-0.24, normal ~0.45. Diff normal ~0.01-0.07, guiño ~0.19+
+                if (earDiff > 0.10 && (leftEAR < 0.28 || rightEAR < 0.28)) {
+                    wink = 1.0;
+                }
 
                 faceStateRef.current = {
                     smile: faceStateRef.current.smile + (smile - faceStateRef.current.smile) * (smile > faceStateRef.current.smile ? cfgFace.smoothingActive : cfgFace.smoothingRelax),
-                    eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? cfgFace.smoothingActive : cfgFace.smoothingRelax)
+                    eyebrows: faceStateRef.current.eyebrows + (eyebrows - faceStateRef.current.eyebrows) * (eyebrows > faceStateRef.current.eyebrows ? cfgFace.smoothingActive : cfgFace.smoothingRelax),
+                    wink: faceStateRef.current.wink + (wink - faceStateRef.current.wink) * (wink > faceStateRef.current.wink ? 0.3 : 0.1)
                 };
             } else {
                 // Si el rostro se sale del cuadro, relajamos los gestos suavemente a 0
                 faceStateRef.current = {
                     smile: faceStateRef.current.smile * 0.9,
-                    eyebrows: faceStateRef.current.eyebrows * 0.9
+                    eyebrows: faceStateRef.current.eyebrows * 0.9,
+                    wink: faceStateRef.current.wink * 0.9
                 };
             }
         }

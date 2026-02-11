@@ -29,16 +29,16 @@ const LIGHT_CONFIG = {
   face: {
     // Luz Principal (Frontal/Superior)
     position: [0, 3, 2],
-    smileColor: '#ff2200',     // Naranja/Rojo muy vivo (ajustado por usuario)
-    eyebrowColor: '#00ccff',   // Cian eléctrico
-    maxIntensity: 120,          // Punto medio (estaba en 15, antes en 40-80)
+    smileColor: '#00ccff',     // Cian (Ahora para sonrisa)
+    winkColor: '#ff2200',      // Rojo (Ahora para guiño)
+    maxIntensity: 120,          
     distance: 15,
     angle: 0.6,
-    penumbra: 0.6,             // Volvemos a un borde algo más definido
+    penumbra: 0.6,             
     
     // Luz de Contorno (Rim Light)
     rimPosition: [0, 2, 5],
-    rimIntensity: 18,          // Subido de 6 a 18 para más brillo en bordes
+    rimIntensity: 18,          
   },
   // GESTO DE PINZA
   pinch: {
@@ -63,7 +63,7 @@ export function DynamicLights() {
   
   const tempColor = useRef(new THREE.Color());
   const faceSmileColor = useRef(new THREE.Color(LIGHT_CONFIG.face.smileColor));
-  const faceEyebrowColor = useRef(new THREE.Color(LIGHT_CONFIG.face.eyebrowColor));
+  const faceWinkColor = useRef(new THREE.Color(LIGHT_CONFIG.face.winkColor));
   const pinchColor = useRef(new THREE.Color(LIGHT_CONFIG.pinch.color));
 
   useFrame(() => {
@@ -105,14 +105,17 @@ export function DynamicLights() {
     }
 
     // --- LUCES DE GESTOS (Cara y Pinch unidos) ---
-    const { smile } = faceStateRef.current;
+    const { smile, wink } = faceStateRef.current;
     const pinch = pinchStateRef.current;
     
-    // 1. Calculamos intensidad combinada (gesto de sonrisa + pinza)
-    const gestureIntensity = Math.max(smile, pinch * 0.8);
+    // 1. Calculamos intensidad combinada
+    const gestureIntensity = Math.max(smile, wink, pinch * 0.8);
     
-    // 2. Usamos el color de sonrisa como base
+    // 2. Prioridad de color: Wink (Rojo) > Smile (Cian) > Pinch
     tempColor.current.copy(faceSmileColor.current);
+    if (wink > 0.01) {
+      tempColor.current.lerp(faceWinkColor.current, wink);
+    }
     
     // 3. Mezclamos con el color de la pinza si existe
     if (pinch > 0.01) {

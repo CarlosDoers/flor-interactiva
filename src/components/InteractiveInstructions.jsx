@@ -5,7 +5,7 @@ import { useHandControl } from './HandContext';
 const INSTRUCTION_CONFIG = {
   swipe: 0.05,     // Sensibilidad del swipe
   fist: 0.5,      // Cierre de puño
-  eyebrows: 0.3,  // Levantar cejas
+  wink: 0.5,      // Guiño
   smile: 0.3,     // Sonreír
   pinch: 0.4      // Unir dedos
 };
@@ -24,16 +24,16 @@ const GESTURES = [
     check: (state) => state.fistStateRef.current > INSTRUCTION_CONFIG.fist
   },
   {
-    id: 'eyebrows',
-    text: 'Coge aire y levanta las cejas',
-    icon: '🤨',
-    check: (state) => state.faceStateRef.current.eyebrows > INSTRUCTION_CONFIG.eyebrows
-  },
-  {
     id: 'smile',
-    text: 'Sonríe para cambiar el color',
+    text: 'Sonríe para desplegar el resplandor',
     icon: '😊',
     check: (state) => state.faceStateRef.current.smile > INSTRUCTION_CONFIG.smile
+  },
+  {
+    id: 'wink',
+    text: 'Guiña un ojo para un cambio pasional',
+    icon: '😉',
+    check: (state) => state.faceStateRef.current.wink > INSTRUCTION_CONFIG.wink
   },
   {
     id: 'pinch',

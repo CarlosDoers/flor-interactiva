@@ -161,17 +161,17 @@ export function PrismaticBeams() {
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
   useFrame((state, delta) => {
-    const { eyebrows } = faceStateRef.current;
+    const { smile } = faceStateRef.current;
     if (!meshRef.current) return;
 
-    const rotationSpeed = BEAM_CONFIG.rotationSpeed + (eyebrows * INTERACTION_CONFIG.rotationBoost);
+    const rotationSpeed = BEAM_CONFIG.rotationSpeed + (smile * INTERACTION_CONFIG.rotationBoost);
     
     // 1. Actualizar Matrix de cada instancia (Escala local de cada rayo)
     beamData.forEach((beam, i) => {
       dummy.position.copy(beam.position);
       dummy.quaternion.copy(beam.quaternion);
       
-      const targetYScale = eyebrows * INTERACTION_CONFIG.beamLengthScale * beam.length;
+      const targetYScale = smile * INTERACTION_CONFIG.beamLengthScale * beam.length;
       dummy.scale.set(1, Math.max(0.001, targetYScale), 1);
       
       dummy.updateMatrix();
@@ -186,7 +186,7 @@ export function PrismaticBeams() {
     // 3. Uniforms de material
     if (materialRef.current) {
         materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-        const targetOpacity = BEAM_CONFIG.baseOpacity + (eyebrows * INTERACTION_CONFIG.opacityBoost);
+        const targetOpacity = BEAM_CONFIG.baseOpacity + (smile * INTERACTION_CONFIG.opacityBoost);
         materialRef.current.uniforms.uGlobalOpacity.value = THREE.MathUtils.lerp(
             materialRef.current.uniforms.uGlobalOpacity.value, 
             targetOpacity, 

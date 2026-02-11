@@ -17,7 +17,7 @@ export const useHandControl = () => useContext(HandContext);
 
 export function HandControlProvider({ children }) {
   const handStateRef = useRef(0); 
-  const faceStateRef = useRef({ smile: 0, eyebrows: 0 }); 
+  const faceStateRef = useRef({ smile: 0, eyebrows: 0, wink: 0 }); 
   const fistStateRef = useRef(0); 
   const rotationImpulseRef = useRef(0); 
   const pinchStateRef = useRef(0); 
