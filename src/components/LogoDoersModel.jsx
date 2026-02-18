@@ -5,7 +5,6 @@ import * as THREE from "three"
 import doorsVertex from '../shaders/logo2.vertex.glsl?raw'
 import doorsFragment from '../shaders/logo2.fragment.glsl?raw'
 import { useHandControl } from './HandContext'; // Import HandContext
-import soundFile from '../assets/sound.mp3'; // Importar archivo de sonido
 
 // Constantes para mejorar la mantenibilidad
 const INITIAL_ROTATION = 0
@@ -31,7 +30,6 @@ export default function LogoDoersModel({ ...props }) {
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const mouseVelocity = useRef(0);
   const rotationTargets = useRef({});
-  const lastHoveredRef = useRef(null); // Ref para rastrear el último objeto tocado
   
   const { cursorRef, isDetected } = useHandControl(); // Use Hand Control
 
@@ -186,16 +184,6 @@ export default function LogoDoersModel({ ...props }) {
 
       const intersects = raycaster.intersectObjects(cubes)
       const hoveredCube = intersects.length > 0 ? intersects[0].object : null
-      
-      // Lógica de sonido al tocar una letra
-      if (hoveredCube && hoveredCube.uuid !== lastHoveredRef.current) {
-        const audio = new Audio(soundFile);
-        audio.volume = 0.5; // Ajustar volumen
-        audio.play().catch(e => console.error("Error reproduciendo audio:", e));
-        lastHoveredRef.current = hoveredCube.uuid;
-      } else if (!hoveredCube) {
-        lastHoveredRef.current = null;
-      }
       
       modelRef.current.traverse((child) => {
         if (child.isMesh && !child.userData.isCube) {
