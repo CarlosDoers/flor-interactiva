@@ -5,6 +5,7 @@ import * as THREE from "three"
 import doorsVertex from '../shaders/logo2.vertex.glsl?raw'
 import doorsFragment from '../shaders/logo2.fragment.glsl?raw'
 import { useHandControl } from './HandContext'; // Import HandContext
+import soundFile from '../assets/sound.mp3'; // Importar archivo de sonido
 
 // Constantes para mejorar la mantenibilidad
 const INITIAL_ROTATION = 0
@@ -26,10 +27,11 @@ export default function LogoDoersModel({ ...props }) {
   const [isVisible, setIsVisible] = useState(false)
   const animationStartTime = useRef(null)
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
-  const mouse = useMemo(() => new THREE.Vector2(-9999, -9999), [])
+  const mouse = useRef(new THREE.Vector2(-9999, -9999)) // Usar useRef para valores mutables
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const mouseVelocity = useRef(0);
   const rotationTargets = useRef({});
+  const lastHoveredRef = useRef(null); // Ref para rastrear el último objeto tocado
   
   const { cursorRef, isDetected } = useHandControl(); // Use Hand Control
 
@@ -69,8 +71,8 @@ export default function LogoDoersModel({ ...props }) {
 
     // Smooth transition or direct update?
     // For responsiveness, direct update is often better for "touch"
-    mouse.x = targetX;
-    mouse.y = targetY;
+    mouse.current.x = targetX;
+    mouse.current.y = targetY;
 
     setMousePosition({ x: targetX, y: targetY });
   });
@@ -165,7 +167,7 @@ export default function LogoDoersModel({ ...props }) {
     })
   }, [])
   
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const elapsedTime = state.clock.elapsedTime;
     const currentTime = Date.now() / 1000;
 
@@ -174,7 +176,7 @@ export default function LogoDoersModel({ ...props }) {
     mouseVelocity.current = THREE.MathUtils.lerp(mouseVelocity.current, mouseSpeed, 0.3);
     lastMousePosition.current = { ...mousePosition };
 
-    raycaster.setFromCamera(mouse, state.camera)
+    raycaster.setFromCamera(mouse.current, state.camera)
     
     if (modelRef.current) {
       const cubes = []
@@ -184,6 +186,16 @@ export default function LogoDoersModel({ ...props }) {
 
       const intersects = raycaster.intersectObjects(cubes)
       const hoveredCube = intersects.length > 0 ? intersects[0].object : null
+      
+      // Lógica de sonido al tocar una letra
+      if (hoveredCube && hoveredCube.uuid !== lastHoveredRef.current) {
+        const audio = new Audio(soundFile);
+        audio.volume = 0.5; // Ajustar volumen
+        audio.play().catch(e => console.error("Error reproduciendo audio:", e));
+        lastHoveredRef.current = hoveredCube.uuid;
+      } else if (!hoveredCube) {
+        lastHoveredRef.current = null;
+      }
       
       modelRef.current.traverse((child) => {
         if (child.isMesh && !child.userData.isCube) {
@@ -279,6 +291,7 @@ export default function LogoDoersModel({ ...props }) {
         ref={modelRef} 
         object={scene} 
         visible={isVisible} 
+        rotation={[-Math.PI / 8, 0, 0]}
         {...props} 
       />
     </Center>
